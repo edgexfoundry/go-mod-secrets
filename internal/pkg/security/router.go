@@ -20,7 +20,7 @@ func LoadRestRoutes() *mux.Router {
 	r.HandleFunc(clients.ApiPingRoute, pingHandler).Methods(http.MethodGet)
 
 	// Configuration
-	r.HandleFunc(clients.ApiBase+"/security", securityHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+	r.HandleFunc(clients.ApiBase+"/security/{key}", securityHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
 	return r
 }
@@ -34,9 +34,12 @@ func pingHandler(w http.ResponseWriter, _ *http.Request) {
 func securityHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	// URL parameters
+	key := mux.Vars(r)["key"]
+
 	switch r.Method {
 	case http.MethodGet:
-		value, err := SecurityClient.GetValue("help")
+		value, err := SecurityClient.GetValue(key)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			LoggingClient.Error(err.Error())
@@ -44,9 +47,9 @@ func securityHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		encode(value, w)
-		break
+		return
 	case http.MethodPost:
-		err := SecurityClient.SetValue("help")
+		err := SecurityClient.SetValue(key)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			LoggingClient.Error(err.Error())
@@ -54,7 +57,7 @@ func securityHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 	case http.MethodDelete:
-		err := SecurityClient.DeleteValue("help")
+		err := SecurityClient.DeleteValue(key)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			LoggingClient.Error(err.Error())

@@ -15,14 +15,19 @@
 // Package vault defines the implementation specific details for the Vault secret key/value store.
 package vault
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/security"
+)
 
 // VaultClient defines the behavior for interacting with the Vault secret key/value store.
 type Client struct {
 }
 
 func (Client) GetValue(key string) (string, error) {
-	return "", fmt.Errorf("implement me")
+	security.LoggingClient.Warn("This is an unimplemented method useful for development ONLY")
+	return key, nil
 }
 
 func (Client) SetValue(key string) error {
