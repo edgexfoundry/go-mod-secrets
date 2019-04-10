@@ -12,23 +12,14 @@
  * the License.
  *******************************************************************************/
 
-// Package security defines the core functionality of the application and how to interact with the secret store.
-package security
+package types
 
-import (
-	"fmt"
-
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/interfaces"
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
-
-	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/vault"
+// Defines the valid secret store providers.
+const (
+	VaultProvider = "vault"
 )
 
-func NewSecurityClient(config types.Config) (interfaces.Client, error) {
-	switch config.Provider {
-	case types.VaultProvider:
-		return vault.Client{}, nil
-	default:
-		return nil, fmt.Errorf("unknown provider type '%s' requested", config.Provider)
-	}
-}
+const (
+	CoreSecurityServiceKey = "edgex-core-security"
+	ConfigFileName         = "configuration.toml"
+)

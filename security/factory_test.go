@@ -19,8 +19,6 @@ import (
 	"testing"
 
 	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
-
-	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/vault"
 )
 
 var validTestConfig = types.Config{Provider: types.VaultProvider}
@@ -30,12 +28,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewSecurityClient(t *testing.T) {
-	c, err := NewSecurityClient(validTestConfig)
-
-	emptyClient := vault.Client{}
-	if c == emptyClient {
-		t.Error("Empty client returned from factory method")
-	}
+	_, err := NewSecurityClient(validTestConfig)
 
 	if err != nil {
 		t.Error(err)

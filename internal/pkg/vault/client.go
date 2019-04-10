@@ -19,7 +19,6 @@ import "fmt"
 
 // VaultClient defines the behavior for interacting with the Vault secret key/value store.
 type Client struct {
-
 }
 
 func (Client) GetValue(key string) (string, error) {

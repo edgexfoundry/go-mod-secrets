@@ -8,4 +8,7 @@ glide.lock
 *.log
 *.exe
 
+# log dirs
+**/logs
+
 *.sum
