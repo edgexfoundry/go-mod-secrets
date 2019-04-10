@@ -12,11 +12,47 @@
  * the License.
  *******************************************************************************/
 
-// Package interfaces defines the contracts that must be implemented by services.
-package interfaces
+package vault
 
-type Client interface {
-	GetValue(key string) (string, error)
-	SetValue(key string) error
-	DeleteValue(key string) error
+import (
+	"os"
+	"testing"
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
+}
+
+func TestClient_GetValue(t *testing.T) {
+	client := Client{}
+
+	value, err := client.GetValue("test")
+
+	if value == "" {
+		t.Error("Unexpected value returned")
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestClient_SetValue(t *testing.T) {
+	client := Client{}
+
+	err := client.SetValue("test")
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestClient_DeleteValue(t *testing.T) {
+	client := Client{}
+
+	err := client.DeleteValue("test")
+
+	if err != nil {
+		t.Error(err)
+	}
 }

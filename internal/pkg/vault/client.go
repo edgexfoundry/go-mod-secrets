@@ -15,7 +15,21 @@
 // Package vault defines the implementation specific details for the Vault secret key/value store.
 package vault
 
-// VaultClient defines the behavior for interacting with the Vault secret key/value store.
-type VaultClient struct {
+import "fmt"
 
+// VaultClient defines the behavior for interacting with the Vault secret key/value store.
+type Client struct {
+
+}
+
+func (Client) GetValue(key string) (string, error) {
+	return "", fmt.Errorf("implement me")
+}
+
+func (Client) SetValue(key string) error {
+	return fmt.Errorf("implement me")
+}
+
+func (Client) DeleteValue(key string) error {
+	return fmt.Errorf("implement me")
 }

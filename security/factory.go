@@ -27,7 +27,7 @@ import (
 func NewSecurityClient(config types.Config) (interfaces.Client, error) {
 	switch config.Provider{
 	case types.VaultProvider:
-		return vault.VaultClient{}, nil
+		return vault.Client{}, nil
 	default:
 		return nil, fmt.Errorf("unknown provider type '%s' requested", config.Provider)
 	}
