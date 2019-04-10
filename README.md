@@ -3,7 +3,7 @@
  
 ## Community
 - Chat: https://chat.edgexfoundry.org/home
-- Mainling lists: https://lists.edgexfoundry.org/mailman/listinfo
+- Mailing lists: https://lists.edgexfoundry.org/mailman/listinfo
 
 ## License
 [Apache-2.0](LICENSE)
