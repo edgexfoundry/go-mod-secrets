@@ -14,4 +14,30 @@
 
 package security
 
-//Must be a .go file of some sort in the root, otherwise "make test" will fail.
+import (
+	"os"
+	"testing"
+
+	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
+
+	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/vault"
+)
+
+var validTestConfig = types.Config{}
+
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
+}
+
+func TestNewSecurityClient(t *testing.T) {
+	c, err := NewSecurityClient(validTestConfig)
+
+	emptyClient := vault.VaultClient{}
+	if c == emptyClient {
+		t.Error("Empty client returned from factory method")
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+}
