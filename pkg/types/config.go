@@ -17,10 +17,17 @@ package types
 
 // Config defines the information needed to connect to the secret provider and anything else a Client might need.
 type Config struct {
-	Provider  string
-	LogTarget string
-	LogLevel  string
-	Service   ServiceInfo
+	Provider       string
+	Authentication AuthenticationInfo
+	LogTarget      string
+	LogLevel       string
+	Service        ServiceInfo
+	Target         TargetInfo
+}
+
+type AuthenticationInfo struct {
+	AuthType  string
+	AuthToken string
 }
 
 // ServiceInfo contains configuration settings necessary for the basic operation of any EdgeX service.
@@ -47,4 +54,11 @@ type ServiceInfo struct {
 	// Timeout specifies a timeout (in milliseconds) for
 	// processing REST calls from other services.
 	Timeout int
+}
+
+// TargetInfo describes the target of the client.
+type TargetInfo struct {
+	Host string `json:"host"`
+	Port string `json:"port"`
+	Path string `json:"path"`
 }

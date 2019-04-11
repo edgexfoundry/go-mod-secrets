@@ -19,6 +19,7 @@ import (
 	"net/http"
 
 	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/interfaces"
+	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/gorilla/mux"
@@ -60,10 +61,26 @@ func securityHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		encode(value, w)
+		w.Write([]byte(value))
 		return
 	case http.MethodPost:
-		err := SecurityClient.SetValue(key)
+		var result map[string]interface{}
+		dec := json.NewDecoder(r.Body)
+		err := dec.Decode(&result)
+
+		// Problem Decoding
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			LoggingClient.Error("Error decoding payload: " + err.Error())
+			return
+		}
+		var payloads []types.Payload
+
+		for k, v := range result["data"].(map[string]interface{}) {
+			payloads = append(payloads, types.Payload{Key: k, Value: v.(string)})
+		}
+
+		err = SecurityClient.SetValue(payloads[0])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			LoggingClient.Error(err.Error())

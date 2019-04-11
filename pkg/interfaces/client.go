@@ -15,8 +15,10 @@
 // Package interfaces defines the contracts that must be implemented by services.
 package interfaces
 
+import "github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
+
 type Client interface {
 	GetValue(key string) (string, error)
-	SetValue(key string) error
+	SetValue(data types.Payload) error
 	DeleteValue(key string) error
 }

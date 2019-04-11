@@ -18,6 +18,8 @@ package vault
 import (
 	"fmt"
 
+	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
+
 	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/security"
 )
 
@@ -30,7 +32,7 @@ func (Client) GetValue(key string) (string, error) {
 	return key, nil
 }
 
-func (Client) SetValue(key string) error {
+func (Client) SetValue(data types.Payload) error {
 	return fmt.Errorf("implement me")
 }
 

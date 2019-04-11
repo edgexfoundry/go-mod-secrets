@@ -14,16 +14,8 @@
 
 package types
 
-// Defines the valid secret store providers.
-const (
-	VaultProvider = "vault"
-	HTTPProvider  = "http"
-)
-
-const (
-	CoreSecurityServiceKey = "edgex-core-security"
-	VaultToken             = "X-Vault-Token"
-	ConfigFileName         = "configuration.toml"
-	ConfigDirectory        = "./res"
-	ConfigDirEnv           = "EDGEX_CONF_DIR"
-)
+// Payload defines the data structure for the application
+type Payload struct {
+	Key   string
+	Value string
+}

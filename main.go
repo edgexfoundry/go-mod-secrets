@@ -15,6 +15,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -117,4 +118,29 @@ func getSecurityVersion() string {
 		return s[:len(s)-len(n)]
 	}
 	return s
+}
+
+func getTokenFromFile() string {
+	file, err := os.Open("token")
+	if err != nil {
+		security.LoggingClient.Error(err.Error())
+		return ""
+	}
+
+	defer file.Close()
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		security.LoggingClient.Error(err.Error())
+		return ""
+	}
+
+	var token map[string]string
+	err = json.Unmarshal([]byte(bytes), &token)
+	if err != nil {
+		security.LoggingClient.Error(err.Error())
+		return ""
+	}
+
+	return token["token"]
 }

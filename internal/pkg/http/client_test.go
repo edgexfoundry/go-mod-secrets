@@ -12,18 +12,13 @@
  * the License.
  *******************************************************************************/
 
-package types
+package http
 
-// Defines the valid secret store providers.
-const (
-	VaultProvider = "vault"
-	HTTPProvider  = "http"
+import (
+	"os"
+	"testing"
 )
 
-const (
-	CoreSecurityServiceKey = "edgex-core-security"
-	VaultToken             = "X-Vault-Token"
-	ConfigFileName         = "configuration.toml"
-	ConfigDirectory        = "./res"
-	ConfigDirEnv           = "EDGEX_CONF_DIR"
-)
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
+}

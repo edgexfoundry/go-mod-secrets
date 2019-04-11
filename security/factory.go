@@ -21,6 +21,7 @@ import (
 	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/interfaces"
 	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
 
+	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/http"
 	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/vault"
 )
 
@@ -28,7 +29,17 @@ func NewSecurityClient(config types.Config) (interfaces.Client, error) {
 	switch config.Provider {
 	case types.VaultProvider:
 		return vault.Client{}, nil
+	case types.HTTPProvider:
+		return http.Client{
+			HttpConfig: http.Configuration{
+				Host:           config.Target.Host,
+				Port:           config.Target.Port,
+				Path:           config.Target.Path,
+				Authentication: config.Authentication,
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown provider type '%s' requested", config.Provider)
 	}
+
 }
