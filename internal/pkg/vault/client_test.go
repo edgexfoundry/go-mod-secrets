@@ -23,6 +23,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+/** TODO uncomment when development resumes
+
 func TestClient_GetValue(t *testing.T) {
 	client := Client{}
 
@@ -56,3 +58,5 @@ func TestClient_DeleteValue(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+*/

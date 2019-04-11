@@ -22,4 +22,6 @@ const (
 const (
 	CoreSecurityServiceKey = "edgex-core-security"
 	ConfigFileName         = "configuration.toml"
+	ConfigDirectory        = "./res"
+	ConfigDirEnv           = "EDGEX_CONF_DIR"
 )

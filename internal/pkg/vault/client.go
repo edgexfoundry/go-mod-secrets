@@ -21,7 +21,7 @@ import (
 	"github.com/edgexfoundry-holding/go-mod-core-security/internal/pkg/security"
 )
 
-// VaultClient defines the behavior for interacting with the Vault secret key/value store.
+// Client defines the behavior for interacting with the Vault secret key/value store.
 type Client struct {
 }
 
