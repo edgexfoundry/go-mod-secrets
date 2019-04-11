@@ -1,0 +1,14 @@
+Provider = "vault"
+LogTarget = "./logs/edgex-core-security.log"
+LogLevel = "INFO"
+
+[Service]
+BootTimeout = 30000
+ClientMonitor = 15000
+CheckInterval = '10s'
+Host = 'localhost'
+Port = 48181
+Protocol = 'http'
+ReadMaxLimit = 100
+StartupMsg = 'This is the Core Security Microservice'
+Timeout = 5000
