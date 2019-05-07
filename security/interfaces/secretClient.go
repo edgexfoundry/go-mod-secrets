@@ -12,10 +12,11 @@
  * the License.
  *******************************************************************************/
 
-package types
+// Package interfaces defines the contracts that must be implemented by services.
+package interfaces
 
-// Payload defines the data structure for the application
-type Payload struct {
-	Key   string
-	Value string
+type SecretClient interface {
+	GetValue(key string) (string, error)
+	SetValue(key string, value string) error
+	DeleteValue(key string) error
 }

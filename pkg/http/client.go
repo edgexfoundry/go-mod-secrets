@@ -25,40 +25,32 @@ import (
 	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
 )
 
-type Configuration struct {
-	Host           string
-	Port           string
-	Path           string
-	Authentication types.AuthenticationInfo
+// HttpClient defines the behavior for interacting with the REST secret key/value store.
+type HttpClient struct {
+	HttpConfig types.SecretConfig
+	httpClient *http.Client
 }
 
-// Client defines the behavior for interacting with the REST secret key/value store.
-type Client struct {
-	HttpConfig Configuration
-}
-
-var httpClient = &http.Client{
-	Timeout: time.Second * 10,
-}
-
-func (c Configuration) buildURL() (path string) {
-	if c.Path == "" {
-		path = "http://" + c.Host + ":" + c.Port + "/"
-	} else {
-		path = "http://" + c.Host + ":" + c.Port + "/" + c.Path
+func NewHttpClient(config types.SecretConfig) HttpClient {
+	client := HttpClient{
+		HttpConfig: config,
+		httpClient: &http.Client{
+			Timeout: time.Second * 10,
+		},
 	}
-	return path
+
+	return client
 }
 
-func (c Client) GetValue(key string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, c.HttpConfig.buildURL(), nil)
+func (c HttpClient) GetValue(key string) (string, error) {
+	req, err := http.NewRequest(http.MethodGet, c.HttpConfig.BuildURL(), nil)
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -77,10 +69,10 @@ func (c Client) GetValue(key string) (string, error) {
 	return value, nil
 }
 
-func (c Client) SetValue(data types.Payload) error {
+func (c HttpClient) SetValue(key string, value string) error {
 	outerdata := make(map[string]interface{})
 	jsonData := make(map[string]string)
-	jsonData[data.Key] = data.Value
+	jsonData[key] = value
 	outerdata["data"] = jsonData
 
 	body, err := json.Marshal(outerdata)
@@ -88,14 +80,14 @@ func (c Client) SetValue(data types.Payload) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.HttpConfig.buildURL(), bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil || resp == nil {
 		return err
 	}
@@ -106,7 +98,7 @@ func (c Client) SetValue(data types.Payload) error {
 	return nil
 }
 
-func (c Client) DeleteValue(key string) error {
+func (c HttpClient) DeleteValue(key string) error {
 	outerdata := make(map[string]interface{})
 	jsonData := make(map[string]string)
 	jsonData[key] = ""
@@ -117,14 +109,14 @@ func (c Client) DeleteValue(key string) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodDelete, c.HttpConfig.buildURL(), bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodDelete, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil || resp == nil {
 		return err
 	}

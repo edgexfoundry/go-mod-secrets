@@ -12,13 +12,27 @@
  * the License.
  *******************************************************************************/
 
-// Package interfaces defines the contracts that must be implemented by services.
-package interfaces
+// Package types defines structs that will be used frequently in the codebase, both internal and external.
+package types
 
-import "github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
-
-type Client interface {
-	GetValue(key string) (string, error)
-	SetValue(data types.Payload) error
-	DeleteValue(key string) error
+type SecretConfig struct {
+	Host           string
+	Port           string
+	Path           string
+	Authentication AuthenticationInfo
 }
+
+func (c SecretConfig) BuildURL() (path string) {
+	if c.Path == "" {
+		path = "http://" + c.Host + ":" + c.Port + "/"
+	} else {
+		path = "http://" + c.Host + ":" + c.Port + "/" + c.Path
+	}
+	return path
+}
+
+type AuthenticationInfo struct {
+	AuthType  string
+	AuthToken string
+}
+
