@@ -12,18 +12,36 @@
  * the License.
  *******************************************************************************/
 
-package types
+package pkg
 
-// Defines the valid secret store providers.
-const (
-	VaultProvider = "vault"
-	HTTPProvider  = "http"
+import (
+	"testing"
 )
 
-const (
-	CoreSecurityServiceKey = "edgex-core-security"
-	VaultToken             = "X-Vault-Token"
-	ConfigFileName         = "configuration.toml"
-	ConfigDirectory        = "./res"
-	ConfigDirEnv           = "EDGEX_CONF_DIR"
-)
+func TestNewSecretClient(t *testing.T) {
+	cfgHttp := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
+	cfgNoop := SecretConfig{Host: "localhost", Port: 8080, Protocol: "mqtt"}
+
+	tests := []struct {
+		name      string
+		cfg       SecretConfig
+		expectErr bool
+	}{
+		{"newHttp", cfgHttp, false},
+		{"newNoop", cfgNoop, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewSecretClient(tt.cfg)
+			if err != nil {
+				if !tt.expectErr {
+					t.Errorf("unexpected error: %v", err)
+				}
+			} else {
+				if tt.expectErr {
+					t.Errorf("did not receive expected error: %s", tt.name)
+				}
+			}
+		})
+	}
+}

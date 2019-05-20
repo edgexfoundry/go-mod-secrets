@@ -12,27 +12,28 @@
  * the License.
  *******************************************************************************/
 
-// Package types defines structs that will be used frequently in the codebase, both internal and external.
-package types
+package pkg
 
-type SecretConfig struct {
-	Host           string
-	Port           string
-	Path           string
-	Authentication AuthenticationInfo
-}
+import "testing"
 
-func (c SecretConfig) BuildURL() (path string) {
-	if c.Path == "" {
-		path = "http://" + c.Host + ":" + c.Port + "/"
-	} else {
-		path = "http://" + c.Host + ":" + c.Port + "/" + c.Path
+func TestBuildUrl(t *testing.T) {
+	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
+	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
+
+	tests := []struct {
+		name string
+		cfg  SecretConfig
+		path string
+	}{
+		{"validNoPath", cfgNoPath, "http://localhost:8080"},
+		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
 	}
-	return path
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val := tt.cfg.BuildURL()
+			if val != tt.path {
+				t.Errorf("%s unexpected path %s", tt.name, val)
+			}
+		})
+	}
 }
-
-type AuthenticationInfo struct {
-	AuthType  string
-	AuthToken string
-}
-

@@ -12,13 +12,24 @@
  * the License.
  *******************************************************************************/
 
-package http
+// Package types defines structs that will be used frequently in the codebase, both internal and external.
+package pkg
 
-import (
-	"os"
-	"testing"
-)
+import "fmt"
 
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
+type SecretConfig struct {
+	Host           string
+	Port           int
+	Path           string
+	Protocol       string
+	Authentication AuthenticationInfo
+}
+
+func (c SecretConfig) BuildURL() (path string) {
+	return fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, c.Path)
+}
+
+type AuthenticationInfo struct {
+	AuthType  string
+	AuthToken string
 }
