@@ -13,7 +13,7 @@
  *******************************************************************************/
 
 // Package HTTP defines the implementation specific details for a REST HTTP key store.
-package http
+package pkg
 
 import (
 	"bytes"
@@ -21,28 +21,31 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/types"
 )
 
 // HttpClient defines the behavior for interacting with the REST secret key/value store.
-type HttpClient struct {
-	HttpConfig types.SecretConfig
+type httpClient struct {
+	HttpConfig SecretConfig
 	httpClient *http.Client
 }
 
-func NewHttpClient(config types.SecretConfig) HttpClient {
-	client := HttpClient{
-		HttpConfig: config,
-		httpClient: &http.Client{
-			Timeout: time.Second * 10,
-		},
+func NewSecretClient(config SecretConfig) (client SecretClient, err error) {
+	switch config.Protocol {
+	case HTTPProvider:
+		client = httpClient{
+			HttpConfig: config,
+			httpClient: &http.Client{
+				Timeout: time.Second * 10,
+			},
+		}
+	default:
+		err = fmt.Errorf("unsupported protocol %s provided", config.Protocol)
 	}
 
-	return client
+	return
 }
 
-func (c HttpClient) GetValue(key string) (string, error) {
+func (c httpClient) GetValue(key string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, c.HttpConfig.BuildURL(), nil)
 	if err != nil {
 		return "", err
@@ -69,7 +72,7 @@ func (c HttpClient) GetValue(key string) (string, error) {
 	return value, nil
 }
 
-func (c HttpClient) SetValue(key string, value string) error {
+func (c httpClient) SetValue(key string, value string) error {
 	outerdata := make(map[string]interface{})
 	jsonData := make(map[string]string)
 	jsonData[key] = value
@@ -98,7 +101,7 @@ func (c HttpClient) SetValue(key string, value string) error {
 	return nil
 }
 
-func (c HttpClient) DeleteValue(key string) error {
+func (c httpClient) DeleteValue(key string) error {
 	outerdata := make(map[string]interface{})
 	jsonData := make(map[string]string)
 	jsonData[key] = ""

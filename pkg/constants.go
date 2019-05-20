@@ -12,11 +12,18 @@
  * the License.
  *******************************************************************************/
 
-// Package interfaces defines the contracts that must be implemented by services.
-package interfaces
+package pkg
 
-type SecretClient interface {
-	GetValue(key string) (string, error)
-	SetValue(key string, value string) error
-	DeleteValue(key string) error
-}
+// Defines the valid secret store providers.
+const (
+	VaultProvider = "vault"
+	HTTPProvider  = "http"
+)
+
+const (
+	CoreSecurityServiceKey = "edgex-core-security"
+	VaultToken             = "X-Vault-Token"
+	ConfigFileName         = "configuration.toml"
+	ConfigDirectory        = "./res"
+	ConfigDirEnv           = "EDGEX_CONF_DIR"
+)
