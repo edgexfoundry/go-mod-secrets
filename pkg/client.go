@@ -65,9 +65,23 @@ func (c httpClient) GetValue(key string) (string, error) {
 		return "", err
 	}
 
-	data := result["data"].(map[string]interface{})
-	kv := data["data"].(map[string]interface{})
-	value := kv[key].(string)
+	data, success := result["data"].(map[string]interface{})
+	if !success {
+		err = fmt.Errorf("no data retrieved from secrets service")
+		return "", err
+	}
+
+	kv, success := data["data"].(map[string]interface{})
+	if !success {
+		err = fmt.Errorf("no keys retrieved from secrets service")
+		return "", err
+	}
+
+	value, success := kv[key].(string)
+	if !success {
+		err = fmt.Errorf("no data retrieved from secrets service at key %s", key)
+		return "", err
+	}
 
 	return value, nil
 }
