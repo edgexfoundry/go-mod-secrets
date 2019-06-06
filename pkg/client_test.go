@@ -12,36 +12,58 @@
  * the License.
  *******************************************************************************/
 
+// Package HTTP defines the implementation specific details for a REST HTTP key store.
 package pkg
 
 import (
 	"testing"
+
+	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
+	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/mocks"
 )
 
-func TestNewSecretClient(t *testing.T) {
-	cfgHttp := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
-	cfgNoop := SecretConfig{Host: "localhost", Port: 8080, Protocol: "mqtt"}
+var TestClient = SecretClient{
+	Manager: mocks.MockSecretStoreManager{
+		Secrets: map[string]string{
+			"one":   "uno",
+			"two":   "dos",
+			"three": "tres",
+		}}}
 
-	tests := []struct {
-		name      string
-		cfg       SecretConfig
-		expectErr bool
-	}{
-		{"newHttp", cfgHttp, false},
-		{"newNoop", cfgNoop, true},
+func TestSecretClient_GetSecret(t *testing.T) {
+	actual, err := TestClient.GetSecret("one")
+	if err != nil {
+		t.Error("Failed to obtain value: " + err.Error())
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewSecretClient(tt.cfg)
-			if err != nil {
-				if !tt.expectErr {
-					t.Errorf("unexpected error: %v", err)
-				}
-			} else {
-				if tt.expectErr {
-					t.Errorf("did not receive expected error: %s", tt.name)
-				}
-			}
-		})
+
+	if actual != "uno" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual)
+	}
+}
+
+func TestSecretClient_SetSecret(t *testing.T) {
+	_ = TestClient.SetSecret("four", "cuatro")
+	actual, err := TestClient.GetSecret("four")
+	if err != nil {
+		t.Error("Failed to obtain value: " + err.Error())
+	}
+
+	if actual != "cuatro" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "cuatro", actual)
+	}
+}
+
+func TestSecretClient_DeleteKey(t *testing.T) {
+	TestClient.DeleteKey("one")
+	_, err := TestClient.GetSecret("one")
+	if err == nil {
+		t.Error("Expected an error")
+	}
+
+	switch err.(type) {
+	case errors.ErrSecretNotFound:
+	// Expected
+	default:
+		t.Errorf("Expected error of type ErrSecretNotFound, but got %v", err)
 	}
 }

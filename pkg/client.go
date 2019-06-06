@@ -15,131 +15,34 @@
 // Package HTTP defines the implementation specific details for a REST HTTP key store.
 package pkg
 
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"time"
-)
+import "github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
 
-// HttpClient defines the behavior for interacting with the REST secret key/value store.
-type httpClient struct {
-	HttpConfig SecretConfig
-	httpClient *http.Client
+type SecretClient struct {
+	Manager SecretStoreManager
 }
 
-func NewSecretClient(config SecretConfig) (client SecretClient, err error) {
-	switch config.Protocol {
-	case HTTPProvider:
-		client = httpClient{
-			HttpConfig: config,
-			httpClient: &http.Client{
-				Timeout: time.Second * 10,
-			},
-		}
-	default:
-		err = fmt.Errorf("unsupported protocol %s provided", config.Protocol)
-	}
-
-	return
-}
-
-func (c httpClient) GetValue(key string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, c.HttpConfig.BuildURL(), nil)
+func (sc SecretClient) GetSecret(key string) (string, error) {
+	value, err := sc.Manager.GetValue(key)
 	if err != nil {
 		return "", err
 	}
 
-	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-	var result map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		return "", err
-	}
-
-	data, success := result["data"].(map[string]interface{})
-	if !success {
-		err = fmt.Errorf("no data retrieved from secrets service")
-		return "", err
-	}
-
-	kv, success := data["data"].(map[string]interface{})
-	if !success {
-		err = fmt.Errorf("no keys retrieved from secrets service")
-		return "", err
-	}
-
-	value, success := kv[key].(string)
-	if !success {
-		err = fmt.Errorf("no data retrieved from secrets service at key %s", key)
-		return "", err
+	if value == "" {
+		return "", errors.ErrSecretNotFound{}
 	}
 
 	return value, nil
 }
 
-func (c httpClient) SetValue(key string, value string) error {
-	outerdata := make(map[string]interface{})
-	jsonData := make(map[string]string)
-	jsonData[key] = value
-	outerdata["data"] = jsonData
-
-	body, err := json.Marshal(outerdata)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil || resp == nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusBadRequest {
-		return fmt.Errorf("bad request")
-	}
-
-	return nil
+func (sc SecretClient) SetSecret(key string, value string) error {
+	return sc.Manager.SetKeyValue(key, value)
 }
 
-func (c httpClient) DeleteValue(key string) error {
-	outerdata := make(map[string]interface{})
-	jsonData := make(map[string]string)
-	jsonData[key] = ""
-	outerdata["data"] = jsonData
-
-	body, err := json.Marshal(outerdata)
+func (sc SecretClient) DeleteKey(key string) error {
+	_, err := sc.GetSecret(key)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodDelete, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil || resp == nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusBadRequest {
-		return fmt.Errorf("bad request")
-	}
-
-	return nil
+	return sc.Manager.DeleteKeyValue(key)
 }

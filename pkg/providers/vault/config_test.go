@@ -12,16 +12,30 @@
  * the License.
  *******************************************************************************/
 
-package pkg
+package vault
 
-type SecretStoreManager interface {
-	// GetValue Retrieves the value associated with the specified key
-	// returns ErrSecretNotFound if no value is associated with the key
-	GetValue(key string) (string, error)
+import (
+	"testing"
+)
 
-	// SetKeyValue Sets the value associated with the specified key
-	SetKeyValue(key string, value string) error
+func TestBuildUrl(t *testing.T) {
+	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
+	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
 
-	// DeleteKeyValue Deletes the value associated with the specified key
-	DeleteKeyValue(key string) error
+	tests := []struct {
+		name string
+		cfg  SecretConfig
+		path string
+	}{
+		{"validNoPath", cfgNoPath, "http://localhost:8080"},
+		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val := tt.cfg.BuildURL()
+			if val != tt.path {
+				t.Errorf("%s unexpected path %s", tt.name, val)
+			}
+		})
+	}
 }

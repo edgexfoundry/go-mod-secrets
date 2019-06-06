@@ -16,13 +16,7 @@ package pkg
 
 // Defines the valid secret store providers.
 const (
-	VaultProvider = "vault"
-	HTTPProvider  = "http"
-)
-
-const (
 	CoreSecurityServiceKey = "edgex-core-security"
-	VaultToken             = "X-Vault-Token"
 	ConfigFileName         = "configuration.toml"
 	ConfigDirectory        = "./res"
 	ConfigDirEnv           = "EDGEX_CONF_DIR"

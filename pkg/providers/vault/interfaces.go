@@ -11,29 +11,11 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  *******************************************************************************/
+package vault
 
-package pkg
+import "net/http"
 
-import "testing"
-
-func TestBuildUrl(t *testing.T) {
-	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
-	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
-
-	tests := []struct {
-		name string
-		cfg  SecretConfig
-		path string
-	}{
-		{"validNoPath", cfgNoPath, "http://localhost:8080"},
-		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			val := tt.cfg.BuildURL()
-			if val != tt.path {
-				t.Errorf("%s unexpected path %s", tt.name, val)
-			}
-		})
-	}
+// Caller interface used to abstract the implementation details for issuing an HTTP request. This allows for easier testing by the way of mocks.
+type Caller interface {
+	Do(req *http.Request) (*http.Response, error)
 }

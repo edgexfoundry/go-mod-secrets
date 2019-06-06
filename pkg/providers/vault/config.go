@@ -12,23 +12,27 @@
  * the License.
  *******************************************************************************/
 
-// Package types defines structs that will be used frequently in the codebase, both internal and external.
-package pkg
+// http defines structs that will be used frequently by clients which utilize HTTP transport.
+package vault
 
 import "fmt"
 
+// SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
 	Host           string
 	Port           int
 	Path           string
 	Protocol       string
+	Provider       string
 	Authentication AuthenticationInfo
 }
 
+// BuildURL constructs a URL which can be used to identify a HTTP based secret provider
 func (c SecretConfig) BuildURL() (path string) {
 	return fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, c.Path)
 }
 
+// AuthenticationInfo contains authentication information to be used when communicating with an HTTP based provider
 type AuthenticationInfo struct {
 	AuthType  string
 	AuthToken string
