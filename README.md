@@ -1,4 +1,4 @@
-# EdgeX Core Security
+# EdgeX Secrets Module
 [![license](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](LICENSE)
  
 ## Community

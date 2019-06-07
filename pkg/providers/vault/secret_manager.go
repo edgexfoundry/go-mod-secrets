@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg"
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
+	"github.com/edgexfoundry/go-mod-secrets/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/errors"
 )
 
 // HttpSecretStoreManager defines the behavior for interacting with the REST secret key/value store.

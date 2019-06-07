@@ -15,7 +15,7 @@
 // Package HTTP defines the implementation specific details for a REST HTTP key store.
 package pkg
 
-import "github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
+import "github.com/edgexfoundry/go-mod-secrets/pkg/errors"
 
 type SecretClient struct {
 	Manager SecretStoreManager

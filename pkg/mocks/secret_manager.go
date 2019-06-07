@@ -15,7 +15,7 @@
 package mocks
 
 import (
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/errors"
 )
 
 // MockSecretStoreManager a mock implementation of the SecretStoreManager which can be used for testing.

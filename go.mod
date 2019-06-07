@@ -1,4 +1,4 @@
-module github.com/edgexfoundry-holding/go-mod-core-security
+module github.com/edgexfoundry/go-mod-secrets
 
 require (
 	github.com/BurntSushi/toml v0.3.1

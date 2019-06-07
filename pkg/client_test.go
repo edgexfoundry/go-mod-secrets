@@ -18,8 +18,8 @@ package pkg
 import (
 	"testing"
 
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/errors"
-	"github.com/edgexfoundry-holding/go-mod-core-security/pkg/mocks"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/errors"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/mocks"
 )
 
 var TestClient = SecretClient{
