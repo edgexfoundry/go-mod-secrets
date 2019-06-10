@@ -30,32 +30,109 @@ var TestClient = SecretClient{
 			"three": "tres",
 		}}}
 
+func reset() {
+	TestClient = SecretClient{
+		Manager: mocks.MockSecretStoreManager{
+			Secrets: map[string]string{
+				"one":   "uno",
+				"two":   "dos",
+				"three": "tres",
+			}}}
+}
+
 func TestSecretClient_GetSecret(t *testing.T) {
-	actual, err := TestClient.GetSecret("one")
+	reset()
+
+	actual, err := TestClient.GetSecrets("one")
 	if err != nil {
 		t.Error("Failed to obtain value: " + err.Error())
 	}
 
-	if actual != "uno" {
-		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual)
+	if actual["one"] != "uno" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual["one"])
+	}
+}
+
+func TestSecretClient_GetSecrets(t *testing.T) {
+	reset()
+
+	actual, err := TestClient.GetSecrets("one", "two")
+	if err != nil {
+		t.Error("Failed to obtain value: " + err.Error())
+	}
+
+	if actual["one"] != "uno" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual["one"])
+	}
+	if actual["two"] != "dos" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual["two"])
 	}
 }
 
 func TestSecretClient_SetSecret(t *testing.T) {
-	_ = TestClient.SetSecret("four", "cuatro")
-	actual, err := TestClient.GetSecret("four")
+	reset()
+
+	_ = TestClient.SetSecrets(map[string]string{"four": "vier"})
+	actual, err := TestClient.GetSecrets("four")
 	if err != nil {
 		t.Error("Failed to obtain value: " + err.Error())
 	}
 
-	if actual != "cuatro" {
-		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "cuatro", actual)
+	if actual["four"] != "vier" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "vier", actual["four"])
+	}
+}
+
+func TestSecretClient_SetSecrets(t *testing.T) {
+	reset()
+
+	_ = TestClient.SetSecrets(map[string]string{
+		"one":  "ein",
+		"four": "vier",
+	})
+	actual, err := TestClient.GetSecrets("one", "four")
+	if err != nil {
+		t.Error("Failed to obtain value: " + err.Error())
+	}
+
+	if actual["one"] != "ein" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "ein", actual["one"])
+	}
+	if actual["four"] != "vier" {
+		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "vier", actual["four"])
 	}
 }
 
 func TestSecretClient_DeleteKey(t *testing.T) {
-	TestClient.DeleteKey("one")
-	_, err := TestClient.GetSecret("one")
+	reset()
+
+	err := TestClient.DeleteKeys("one")
+	if err != nil {
+		t.Error("Unexpected error")
+	}
+
+	_, err = TestClient.GetSecrets("one")
+	if err == nil {
+		t.Error("Expected an error")
+	}
+
+	switch err.(type) {
+	case errors.ErrSecretNotFound:
+	// Expected
+	default:
+		t.Errorf("Expected error of type ErrSecretNotFound, but got %v", err)
+	}
+}
+
+func TestSecretClient_DeleteKeys(t *testing.T) {
+	reset()
+
+	err := TestClient.DeleteKeys("one", "two")
+	if err != nil {
+		t.Error("Unexpected error")
+	}
+
+	_, err = TestClient.GetSecrets("one", "two")
 	if err == nil {
 		t.Error("Expected an error")
 	}
