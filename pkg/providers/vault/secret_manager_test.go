@@ -109,12 +109,12 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			Data: testData,
 		}}
 
-	v, err := ssm.GetValue("one")
+	v, err := ssm.GetValues("one")
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err.Error())
 	}
 
-	if v != "uno" {
+	if v["one"] != "uno" {
 		t.Errorf("Expected value '%s', but got '%s'", "uno", v)
 	}
 }
@@ -163,7 +163,7 @@ func TestHttpSecretStoreManager_GetValue2(t *testing.T) {
 					Data: testData,
 				}}
 
-			v, err := ssm.GetValue(test.key)
+			v, err := ssm.GetValues(test.key)
 			if test.expectError && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}
@@ -172,7 +172,7 @@ func TestHttpSecretStoreManager_GetValue2(t *testing.T) {
 				t.Errorf("Unexpected error: %s", err.Error())
 			}
 
-			if v != test.expectedValue {
+			if v[test.key] != test.expectedValue {
 				t.Errorf("Expected value '%s', but got '%s'", test.expectedValue, v)
 			}
 		})
@@ -225,7 +225,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				HttpConfig: cfgHttp,
 				HttpCaller: immc}
 
-			err := ssm.SetKeyValue(test.key, test.value)
+			err := ssm.SetKeyValues(map[string]string{test.key: test.value})
 			if test.expectError && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}
@@ -277,7 +277,7 @@ func TestHttpSecretStoreManager_SetDelete(t *testing.T) {
 				HttpConfig: cfgHttp,
 				HttpCaller: immc}
 
-			err := ssm.DeleteKeyValue(test.key)
+			err := ssm.DeleteKeyValues(test.key)
 			if test.expectError && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}

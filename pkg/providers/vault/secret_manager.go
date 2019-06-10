@@ -47,29 +47,28 @@ func NewSecretClient(config SecretConfig) (client pkg.SecretClient, err error) {
 	return
 }
 
-func (c HttpSecretStoreManager) GetValue(key string) (string, error) {
+func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
 	data, err := c.getAllKeys()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	value, success := data[key].(string)
-	if !success {
-		err = fmt.Errorf("no data retrieved from secrets service at key %s", key)
-		return "", errors.ErrSecretNotFound{Key: key}
+	values := make(map[string]string)
+
+	for _, key := range keys {
+		value, success := data[key].(string)
+		if !success {
+			return nil, errors.ErrSecretNotFound{Key: key}
+		}
+
+		values[key] = value
 	}
 
-	return value, nil
+	return values, nil
 }
 
-func (c HttpSecretStoreManager) SetKeyValue(key string, value string) error {
-	data, err := c.getAllKeys()
-	if err != nil {
-		return err
-	}
-
-	data[key] = value
-	body, err := json.Marshal(data)
+func (c HttpSecretStoreManager) SetKeyValues(secrets map[string]string) error {
+	body, err := json.Marshal(secrets)
 	if err != nil {
 		return err
 	}
@@ -91,20 +90,22 @@ func (c HttpSecretStoreManager) SetKeyValue(key string, value string) error {
 	return nil
 }
 
-func (c HttpSecretStoreManager) DeleteKeyValue(key string) error {
+func (c HttpSecretStoreManager) DeleteKeyValues(keys ...string) error {
 	data, err := c.getAllKeys()
 	if err != nil {
 		return err
 	}
 
-	_, present := data[key]
-	if !present {
-		return errors.ErrSecretNotFound{
-			Key: key,
+	for _, key := range keys {
+		_, present := data[key]
+		if !present {
+			return errors.ErrSecretNotFound{
+				Key: key,
+			}
 		}
+		delete(data, key)
 	}
 
-	delete(data, key)
 	body, err := json.Marshal(data)
 	if err != nil {
 		return err

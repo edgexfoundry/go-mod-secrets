@@ -12,7 +12,7 @@
  * the License.
  *******************************************************************************/
 
-// Package HTTP defines the implementation specific details for a REST HTTP key store.
+// This package defines the contract for any secret client that will interact with a secret store.
 package pkg
 
 import "github.com/edgexfoundry/go-mod-secrets/pkg/errors"
@@ -21,28 +21,36 @@ type SecretClient struct {
 	Manager SecretStoreManager
 }
 
-func (sc SecretClient) GetSecret(key string) (string, error) {
-	value, err := sc.Manager.GetValue(key)
+// GetSecrets returns the values requested at the provided keys.
+// If the secret manager returns a nil or empty map, a SecretNotFound error is thrown.
+// If any other error is thrown by the secret manager it is bubbled up and no partial results are provided.
+func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
+	value, err := sc.Manager.GetValues(keys...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if value == "" {
-		return "", errors.ErrSecretNotFound{}
+	if value == nil || len(value) == 0 {
+		return nil, errors.ErrSecretNotFound{}
 	}
 
 	return value, nil
 }
 
-func (sc SecretClient) SetSecret(key string, value string) error {
-	return sc.Manager.SetKeyValue(key, value)
+// SetSecrets sets the values requested at the provided keys.
+// Error handling is done by the secret manager and is implementation specific.
+func (sc SecretClient) SetSecrets(secrets map[string]string) error {
+	return sc.Manager.SetKeyValues(secrets)
 }
 
-func (sc SecretClient) DeleteKey(key string) error {
-	_, err := sc.GetSecret(key)
+// DeleteSecrets deletes the provided keys and their corresponding values.
+// If any error is encountered verifying the keys and values exist this function aborts and does not attempt a delete.
+// Error handling for deletion is done by the secret manager and is implementation specific.
+func (sc SecretClient) DeleteKeys(keys ...string) error {
+	_, err := sc.GetSecrets(keys...)
 	if err != nil {
 		return err
 	}
 
-	return sc.Manager.DeleteKeyValue(key)
+	return sc.Manager.DeleteKeyValues(keys...)
 }

@@ -15,13 +15,13 @@
 package pkg
 
 type SecretStoreManager interface {
-	// GetValue Retrieves the value associated with the specified key
+	// GetValue Retrieves the values associated with the specified keys
 	// returns ErrSecretNotFound if no value is associated with the key
-	GetValue(key string) (string, error)
+	GetValues(keys ...string) (map[string]string, error)
 
-	// SetKeyValue Sets the value associated with the specified key
-	SetKeyValue(key string, value string) error
+	// SetKeyValue Sets the values associated with the specified keys
+	SetKeyValues(secrets map[string]string) error
 
-	// DeleteKeyValue Deletes the value associated with the specified key
-	DeleteKeyValue(key string) error
+	// DeleteKeyValue Deletes the values associated with the specified keys
+	DeleteKeyValues(keys ...string) error
 }

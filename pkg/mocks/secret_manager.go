@@ -23,26 +23,43 @@ type MockSecretStoreManager struct {
 	Secrets map[string]string
 }
 
-func (mssm MockSecretStoreManager) GetValue(key string) (string, error) {
-	value, _ := mssm.Secrets[key]
-	return value, nil
-}
+func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
+	data := mssm.Secrets
 
-func (mssm MockSecretStoreManager) SetKeyValue(key string, value string) error {
-	if value == "" {
-		return errors.ErrUnsupportedValue{}
+	values := make(map[string]string)
+
+	for _, key := range keys {
+		value, success := data[key]
+		if !success {
+			return nil, errors.ErrSecretNotFound{Key: key}
+		}
+
+		values[key] = value
 	}
 
-	mssm.Secrets[key] = value
+	return values, nil
+}
+
+func (mssm MockSecretStoreManager) SetKeyValues(secrets map[string]string) error {
+	for key := range secrets {
+		if secrets[key] == "" {
+			return errors.ErrUnsupportedValue{}
+		}
+
+		mssm.Secrets[key] = secrets[key]
+	}
+
 	return nil
 }
 
-func (mssm MockSecretStoreManager) DeleteKeyValue(key string) error {
-	_, ok := mssm.Secrets[key]
-	if !ok {
-		return errors.ErrSecretNotFound{}
+func (mssm MockSecretStoreManager) DeleteKeyValues(keys ...string) error {
+	for _, key := range keys {
+		if mssm.Secrets[key] == "" {
+			return errors.ErrSecretNotFound{}
+		}
+
+		delete(mssm.Secrets, key)
 	}
 
-	delete(mssm.Secrets, key)
 	return nil
 }
