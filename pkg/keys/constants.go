@@ -2,6 +2,6 @@
 package keys
 
 const (
-	DatabaseUsername = "User"
+	DatabaseUsername = "Username"
 	DatabasePassword = "Password"
 )
