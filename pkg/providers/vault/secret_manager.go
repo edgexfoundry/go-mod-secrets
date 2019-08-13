@@ -15,8 +15,11 @@ package vault
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
@@ -30,21 +33,25 @@ type HttpSecretStoreManager struct {
 }
 
 // Constructs a SecretClient which communicates with a storage mechanism via HTTP
-func NewSecretClient(config SecretConfig) (client pkg.SecretClient, err error) {
+func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 	switch config.Provider {
 	case HTTPProvider:
-		client = pkg.SecretClient{
+		httpClient, err := createHttpClient(config)
+		if err != nil {
+			return pkg.SecretClient{}, err
+		}
+
+		client := pkg.SecretClient{
 			Manager: HttpSecretStoreManager{
 				HttpConfig: config,
-				HttpCaller: http.DefaultClient,
+				HttpCaller: httpClient,
 			},
 		}
+
 		return client, nil
 	default:
-		err = fmt.Errorf("unsupported provider %s provided", config.Protocol)
+		return pkg.SecretClient{}, fmt.Errorf("unsupported provider %s provided", config.Protocol)
 	}
-
-	return
 }
 
 func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
@@ -154,4 +161,35 @@ func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
 	}
 
 	return data, nil
+}
+
+// createHttpClient creates and configures an HTTP client which can be used to communicate with the underlying
+// secret-store based on the SecretConfig.
+// Returns ErrCaRootCert is there is an error with the certificate.
+func createHttpClient(config SecretConfig) (Caller, error) {
+
+	if config.RootCaCert == "" {
+		return http.DefaultClient, nil
+	}
+
+	// Read and load the CA Root certificate so the client will be able to use TLS without skipping the verification of
+	// the cert received by the server.
+	caCert, err := ioutil.ReadFile(config.RootCaCert)
+	if err != nil {
+		return nil, ErrCaRootCert{
+			path:        config.RootCaCert,
+			description: err.Error(),
+		}
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		},
+	}, nil
+
 }

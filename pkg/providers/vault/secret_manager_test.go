@@ -77,14 +77,16 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 func TestNewSecretClient(t *testing.T) {
 	cfgHttp := SecretConfig{Host: "localhost", Port: 8080, Provider: HTTPProvider}
 	cfgNoop := SecretConfig{Host: "localhost", Port: 8080, Provider: "mqtt"}
+	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, Provider: HTTPProvider, RootCaCert: "/non-existent-directory/rootCa.crt"}
 
 	tests := []struct {
 		name      string
 		cfg       SecretConfig
 		expectErr bool
 	}{
-		{"newHttp", cfgHttp, false},
-		{"newNoop", cfgNoop, true},
+		{"NewSecretClient HTTP configuration", cfgHttp, false},
+		{"NewSecretClient  unsupported provider", cfgNoop, true},
+		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
