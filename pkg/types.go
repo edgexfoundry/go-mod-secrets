@@ -12,9 +12,12 @@
  * the License.
  *******************************************************************************/
 // Package errors contains the error types which are used by the SecretClient to communicate errors
-package errors
+package pkg
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ErrSecretStoreConn error for communication errors with the underlying storage mechanism
 type ErrSecretStoreConn struct{}
@@ -23,13 +26,17 @@ func (ErrSecretStoreConn) Error() string {
 	return "Unable to obtain from underlying data-store"
 }
 
-// ErrSecretNotFound error when a secret cannot be found. This aids in differentiating between empty("") values and non-existent keys
-type ErrSecretNotFound struct {
-	Key string
+// ErrSecretsNotFound error when a secret cannot be found. This aids in differentiating between empty("") values and non-existent keys
+type ErrSecretsNotFound struct {
+	keys []string
 }
 
-func (scnf ErrSecretNotFound) Error() string {
-	return fmt.Sprintf("No value for the key: '%s' exists", scnf.Key)
+func (scnf ErrSecretsNotFound) Error() string {
+	return fmt.Sprintf("No value for the keys: [%s] exists", strings.Join(scnf.keys, ","))
+}
+
+func NewErrSecretsNotFound(keys []string) ErrSecretsNotFound {
+	return ErrSecretsNotFound{keys: keys}
 }
 
 // ErrUnsupportedValue error for unsupported data such as invalid characters or the length of key/values

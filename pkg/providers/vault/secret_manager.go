@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/pkg/errors"
 )
 
 // HttpSecretStoreManager defines the behavior for interacting with the REST secret key/value store.
@@ -60,14 +59,20 @@ func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, er
 	}
 
 	values := make(map[string]string)
+	var notFound []string
 
 	for _, key := range keys {
 		value, success := data[key].(string)
 		if !success {
-			return nil, errors.ErrSecretNotFound{Key: key}
+			notFound = append(notFound, key)
+			continue
 		}
 
 		values[key] = value
+	}
+
+	if len(notFound) > 0 {
+		return nil, pkg.NewErrSecretsNotFound(notFound)
 	}
 
 	return values, nil

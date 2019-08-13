@@ -16,12 +16,10 @@ package pkg
 
 import (
 	"testing"
-
-	"github.com/edgexfoundry/go-mod-secrets/pkg/mocks"
 )
 
 var TestClient = SecretClient{
-	Manager: mocks.MockSecretStoreManager{
+	Manager: MockSecretStoreManager{
 		Secrets: map[string]string{
 			"one":   "uno",
 			"two":   "dos",
@@ -30,7 +28,7 @@ var TestClient = SecretClient{
 
 func reset() {
 	TestClient = SecretClient{
-		Manager: mocks.MockSecretStoreManager{
+		Manager: MockSecretStoreManager{
 			Secrets: map[string]string{
 				"one":   "uno",
 				"two":   "dos",
@@ -65,4 +63,30 @@ func TestSecretClient_GetSecrets(t *testing.T) {
 	if actual["two"] != "dos" {
 		t.Errorf("Failed to obtain the correct value. Expecting: '%s' , but got: '%s'", "uno", actual["two"])
 	}
+}
+
+// MockSecretStoreManager a mock implementation of the SecretStoreManager which can be used for testing.
+type MockSecretStoreManager struct {
+	Secrets map[string]string
+}
+
+func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
+	data := mssm.Secrets
+
+	values := make(map[string]string)
+	var notFound []string
+	for _, key := range keys {
+		value, success := data[key]
+		if !success {
+			notFound = append(notFound, key)
+			continue
+		}
+
+		values[key] = value
+	}
+
+	if len(notFound) > 0 {
+		return nil, NewErrSecretsNotFound(notFound)
+	}
+	return values, nil
 }
