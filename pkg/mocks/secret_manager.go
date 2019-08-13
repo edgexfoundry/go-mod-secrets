@@ -39,27 +39,3 @@ func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string,
 
 	return values, nil
 }
-
-func (mssm MockSecretStoreManager) SetKeyValues(secrets map[string]string) error {
-	for key := range secrets {
-		if secrets[key] == "" {
-			return errors.ErrUnsupportedValue{}
-		}
-
-		mssm.Secrets[key] = secrets[key]
-	}
-
-	return nil
-}
-
-func (mssm MockSecretStoreManager) DeleteKeyValues(keys ...string) error {
-	for _, key := range keys {
-		if mssm.Secrets[key] == "" {
-			return errors.ErrSecretNotFound{}
-		}
-
-		delete(mssm.Secrets, key)
-	}
-
-	return nil
-}

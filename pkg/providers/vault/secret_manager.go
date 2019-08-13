@@ -14,7 +14,6 @@
 package vault
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -32,7 +31,7 @@ type HttpSecretStoreManager struct {
 	HttpCaller Caller
 }
 
-// Constructs a SecretClient which communicates with a storage mechanism via HTTP
+// NewSecretClient constructs a SecretClient which communicates with a storage mechanism via HTTP
 func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 	switch config.Provider {
 	case HTTPProvider:
@@ -72,67 +71,6 @@ func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, er
 	}
 
 	return values, nil
-}
-
-func (c HttpSecretStoreManager) SetKeyValues(secrets map[string]string) error {
-	body, err := json.Marshal(secrets)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
-	resp, err := c.HttpCaller.Do(req)
-	if err != nil || resp == nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusBadRequest {
-		return fmt.Errorf("bad request")
-	}
-
-	return nil
-}
-
-func (c HttpSecretStoreManager) DeleteKeyValues(keys ...string) error {
-	data, err := c.getAllKeys()
-	if err != nil {
-		return err
-	}
-
-	for _, key := range keys {
-		_, present := data[key]
-		if !present {
-			return errors.ErrSecretNotFound{
-				Key: key,
-			}
-		}
-		delete(data, key)
-	}
-
-	body, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, c.HttpConfig.BuildURL(), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
-	resp, err := c.HttpCaller.Do(req)
-	if err != nil || resp == nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusBadRequest {
-		return fmt.Errorf("bad request")
-	}
-
-	return nil
 }
 
 func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
