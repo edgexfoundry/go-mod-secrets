@@ -12,7 +12,7 @@
  * the License.
  *******************************************************************************/
 
-// http defines structs that will be used frequently by clients which utilize HTTP transport.
+// vault defines structs that will be used frequently by clients which utilize HTTP transport.
 package vault
 
 import "fmt"
@@ -24,6 +24,7 @@ type SecretConfig struct {
 	Path           string
 	Protocol       string
 	Provider       string
+	RootCaCert     string
 	Authentication AuthenticationInfo
 }
 
