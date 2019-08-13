@@ -12,7 +12,8 @@
  * the License.
  *******************************************************************************/
 
-// This package defines the contract for any secret client that will interact with a secret store.
+// Package pkg generalized functions, interfaces, and structs which can be used for for different data-stores
+// implementations.
 package pkg
 
 import "github.com/edgexfoundry/go-mod-secrets/pkg/errors"
@@ -35,22 +36,4 @@ func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
 	}
 
 	return value, nil
-}
-
-// SetSecrets sets the values requested at the provided keys.
-// Error handling is done by the secret manager and is implementation specific.
-func (sc SecretClient) SetSecrets(secrets map[string]string) error {
-	return sc.Manager.SetKeyValues(secrets)
-}
-
-// DeleteSecrets deletes the provided keys and their corresponding values.
-// If any error is encountered verifying the keys and values exist this function aborts and does not attempt a delete.
-// Error handling for deletion is done by the secret manager and is implementation specific.
-func (sc SecretClient) DeleteKeys(keys ...string) error {
-	_, err := sc.GetSecrets(keys...)
-	if err != nil {
-		return err
-	}
-
-	return sc.Manager.DeleteKeyValues(keys...)
 }
