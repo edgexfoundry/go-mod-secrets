@@ -16,15 +16,13 @@
 // implementations.
 package pkg
 
-import "github.com/edgexfoundry/go-mod-secrets/pkg/errors"
-
 type SecretClient struct {
 	Manager SecretStoreManager
 }
 
 // GetSecrets returns the values requested at the provided keys.
-// If the secret manager returns a nil or empty map, a SecretNotFound error is thrown.
-// If any other error is thrown by the secret manager it is bubbled up and no partial results are provided.
+// If the secret manager returns a nil or empty map, a SecretsNotFound error is returned.
+// If any other error is encountered by the secret manager it is bubbled up and no partial results are provided.
 func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
 	value, err := sc.Manager.GetValues(keys...)
 	if err != nil {
@@ -32,7 +30,7 @@ func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
 	}
 
 	if value == nil || len(value) == 0 {
-		return nil, errors.ErrSecretNotFound{}
+		return nil, ErrSecretsNotFound{}
 	}
 
 	return value, nil

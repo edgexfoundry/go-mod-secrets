@@ -20,7 +20,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"testing"
+
+	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
 var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
@@ -39,7 +42,7 @@ type ErrorMockCaller struct {
 
 func (emc ErrorMockCaller) Do(req *http.Request) (*http.Response, error) {
 	if emc.ReturnError {
-		return nil, errors.New("returning error from mock client")
+		return nil, pkg.ErrSecretStoreConn{}
 	}
 
 	return &http.Response{
@@ -105,53 +108,63 @@ func TestNewSecretClient(t *testing.T) {
 }
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
-	ssm := HttpSecretStoreManager{
-		HttpConfig: cfgHttp,
-		HttpCaller: &InMemoryMockCaller{
-			Data: testData,
-		}}
-
-	v, err := ssm.GetValues("one")
-	if err != nil {
-		t.Errorf("Unexpected error: %s", err.Error())
-	}
-
-	if v["one"] != "uno" {
-		t.Errorf("Expected value '%s', but got '%s'", "uno", v)
-	}
-}
-
-func TestHttpSecretStoreManager_GetValue2(t *testing.T) {
 	tests := []struct {
-		name          string
-		key           string
-		expectedValue string
-		expectError   bool
-		caller        Caller
+		name           string
+		keys           []string
+		expectedValues map[string]string
+		expectedError  error
+		caller         Caller
 	}{
 		{
-			name:          "Get Key",
-			key:           "one",
-			expectedValue: "uno",
-			expectError:   false,
+			name:           "Get Key",
+			keys:           []string{"one"},
+			expectedValues: map[string]string{"one": "uno"},
+			expectedError:  nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:          "Get non-existent Key",
-			key:           "Does not exist",
-			expectedValue: "",
-			expectError:   true,
+			name:           "Get Keys",
+			keys:           []string{"one", "two"},
+			expectedValues: map[string]string{"one": "uno", "two": "dos"},
+			expectedError:  nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:          "Handle HTTP error",
-			key:           "Does not exist",
-			expectedValue: "",
-			expectError:   true,
+			name:           "Get non-existent Key",
+			keys:           []string{"Does not exist"},
+			expectedValues: nil,
+			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:           "Get all non-existent Keys",
+			keys:           []string{"Does not exist", "Also does not exist"},
+			expectedValues: nil,
+			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:           "Get some non-existent Keys",
+			keys:           []string{"one", "Does not exist", "Also does not exist"},
+			expectedValues: nil,
+			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:           "Handle HTTP error",
+			keys:           []string{"Does not exist"},
+			expectedValues: nil,
+			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
 			caller: ErrorMockCaller{
 				StatusCode: 404,
 			},
@@ -165,17 +178,24 @@ func TestHttpSecretStoreManager_GetValue2(t *testing.T) {
 					Data: testData,
 				}}
 
-			v, err := ssm.GetValues(test.key)
-			if test.expectError && err == nil {
+			actual, err := ssm.GetValues(test.keys...)
+			if test.expectedError != nil && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}
 
-			if !test.expectError && err != nil {
+			if test.expectedError == nil && err != nil {
 				t.Errorf("Unexpected error: %s", err.Error())
 			}
 
-			if v[test.key] != test.expectedValue {
-				t.Errorf("Expected value '%s', but got '%s'", test.expectedValue, v)
+			if test.expectedError != nil && !reflect.DeepEqual(err, test.expectedError) {
+				t.Errorf("Observed error doesn't match expected.\nExpected: %v\nActual: %v\n", test.expectedError, err)
+			}
+
+			for k, expected := range test.expectedValues {
+				if actual[k] != expected {
+					t.Errorf("Expected value '%s', but got '%s'", expected, actual[k])
+
+				}
 			}
 		})
 	}
