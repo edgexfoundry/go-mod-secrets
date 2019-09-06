@@ -1,8 +1,6 @@
 package vault
 
 const (
-	HTTPProvider    = "http"
-	VaultProvider   = "vault"
-	VaultToken      = "X-Vault-Token"
+	// NamespaceHeader specifies the header name to use when including Namespace information in a request.
 	NamespaceHeader = "X-Vault-Namespace"
 )

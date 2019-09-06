@@ -35,13 +35,7 @@ func (scnf ErrSecretsNotFound) Error() string {
 	return fmt.Sprintf("No value for the keys: [%s] exists", strings.Join(scnf.keys, ","))
 }
 
+// NewErrSecretsNotFound creates a new ErrSecretsNotFound error.
 func NewErrSecretsNotFound(keys []string) ErrSecretsNotFound {
 	return ErrSecretsNotFound{keys: keys}
-}
-
-// ErrUnsupportedValue error for unsupported data such as invalid characters or the length of key/values
-type ErrUnsupportedValue struct{}
-
-func (ErrUnsupportedValue) Error() string {
-	panic("implement me")
 }
