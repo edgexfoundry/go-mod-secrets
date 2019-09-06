@@ -24,6 +24,7 @@ type SecretConfig struct {
 	Path           string
 	Protocol       string
 	Provider       string
+	Namespace      string
 	RootCaCert     string
 	Authentication AuthenticationInfo
 }
