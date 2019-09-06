@@ -33,7 +33,7 @@ type HttpSecretStoreManager struct {
 // NewSecretClient constructs a SecretClient which communicates with a storage mechanism via HTTP
 func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 	switch config.Provider {
-	case HTTPProvider:
+	case VaultProvider:
 		httpClient, err := createHttpClient(config)
 		if err != nil {
 			return pkg.SecretClient{}, err
