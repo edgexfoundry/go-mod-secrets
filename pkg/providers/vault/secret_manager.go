@@ -85,6 +85,11 @@ func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
 	}
 
 	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
+
+	if c.HttpConfig.Namespace != "" {
+		req.Header.Set(NamespaceHeader, c.HttpConfig.Namespace)
+	}
+
 	resp, err := c.HttpCaller.Do(req)
 	if err != nil {
 		return nil, err

@@ -26,7 +26,8 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
-var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
+var TestNamespace = "database"
+var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Namespace: TestNamespace}
 var testData = map[string]map[string]string{
 	"data": {
 		"one":   "uno",
@@ -56,6 +57,10 @@ type InMemoryMockCaller struct {
 }
 
 func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
+	if req.Header.Get(NamespaceHeader) != TestNamespace {
+		return nil, errors.New("namespace header is expected but not present in request")
+	}
+
 	switch req.Method {
 	case http.MethodGet:
 		r, _ := json.Marshal(immc.Data)
@@ -81,6 +86,7 @@ func TestNewSecretClient(t *testing.T) {
 	cfgHttp := SecretConfig{Host: "localhost", Port: 8080, Provider: HTTPProvider}
 	cfgNoop := SecretConfig{Host: "localhost", Port: 8080, Provider: "mqtt"}
 	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, Provider: HTTPProvider, RootCaCert: "/non-existent-directory/rootCa.crt"}
+	cfgNamespace := SecretConfig{Host: "localhost", Port: 8080, Provider: HTTPProvider, Namespace: "database"}
 
 	tests := []struct {
 		name      string
@@ -90,6 +96,7 @@ func TestNewSecretClient(t *testing.T) {
 		{"NewSecretClient HTTP configuration", cfgHttp, false},
 		{"NewSecretClient  unsupported provider", cfgNoop, true},
 		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
+		{"NewSecretClient with Namespace", cfgNamespace, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
