@@ -23,7 +23,6 @@ type SecretConfig struct {
 	Port           int
 	Path           string
 	Protocol       string
-	Provider       string
 	Namespace      string
 	RootCaCert     string
 	Authentication AuthenticationInfo

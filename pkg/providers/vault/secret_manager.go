@@ -24,32 +24,26 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
-// HttpSecretStoreManager defines the behavior for interacting with the REST secret key/value store.
+// HttpSecretStoreManager defines the behavior for interacting with the Vault REST secret key/value store via HTTP.
 type HttpSecretStoreManager struct {
 	HttpConfig SecretConfig
 	HttpCaller Caller
 }
 
-// NewSecretClient constructs a SecretClient which communicates with a storage mechanism via HTTP
+// NewSecretClient constructs a SecretClient which communicates with Vault via HTTP
 func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
-	switch config.Provider {
-	case HTTPProvider:
-		httpClient, err := createHttpClient(config)
-		if err != nil {
-			return pkg.SecretClient{}, err
-		}
-
-		client := pkg.SecretClient{
-			Manager: HttpSecretStoreManager{
-				HttpConfig: config,
-				HttpCaller: httpClient,
-			},
-		}
-
-		return client, nil
-	default:
-		return pkg.SecretClient{}, fmt.Errorf("unsupported provider %s provided", config.Protocol)
+	httpClient, err := createHttpClient(config)
+	if err != nil {
+		return pkg.SecretClient{}, err
 	}
+
+	return pkg.SecretClient{
+		Manager: HttpSecretStoreManager{
+			HttpConfig: config,
+			HttpCaller: httpClient,
+		},
+	}, nil
+
 }
 
 func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
@@ -139,5 +133,4 @@ func createHttpClient(config SecretConfig) (Caller, error) {
 			},
 		},
 	}, nil
-
 }
