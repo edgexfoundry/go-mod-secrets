@@ -129,7 +129,8 @@ func createHttpClient(config SecretConfig) (Caller, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
+				RootCAs:    caCertPool,
+				ServerName: config.ServerName,
 			},
 		},
 	}, nil
