@@ -26,6 +26,7 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
+var TestConnError = pkg.NewErrSecretStore("testing conn error")
 var TestNamespace = "database"
 var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Namespace: TestNamespace}
 var testData = map[string]map[string]string{
@@ -43,11 +44,13 @@ type ErrorMockCaller struct {
 
 func (emc ErrorMockCaller) Do(req *http.Request) (*http.Response, error) {
 	if emc.ReturnError {
-		return nil, pkg.ErrSecretStoreConn{}
+		return &http.Response{
+			StatusCode: emc.StatusCode,
+		}, TestConnError
 	}
 
 	return &http.Response{
-		StatusCode: 200,
+		StatusCode: emc.StatusCode,
 	}, nil
 }
 
@@ -114,64 +117,83 @@ func TestNewSecretClient(t *testing.T) {
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	tests := []struct {
-		name           string
-		keys           []string
-		expectedValues map[string]string
-		expectedError  error
-		caller         Caller
+		name              string
+		keys              []string
+		expectedValues    map[string]string
+		expectError       bool
+		expectedErrorType error
+		caller            Caller
 	}{
 		{
-			name:           "Get Key",
-			keys:           []string{"one"},
-			expectedValues: map[string]string{"one": "uno"},
-			expectedError:  nil,
+			name:              "Get Key",
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:           "Get Keys",
-			keys:           []string{"one", "two"},
-			expectedValues: map[string]string{"one": "uno", "two": "dos"},
-			expectedError:  nil,
+			name:              "Get Keys",
+			keys:              []string{"one", "two"},
+			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
+			expectError:       false,
+			expectedErrorType: nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:           "Get non-existent Key",
-			keys:           []string{"Does not exist"},
-			expectedValues: nil,
-			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
+			name:              "Get non-existent Key",
+			keys:              []string{"Does not exist"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:           "Get all non-existent Keys",
-			keys:           []string{"Does not exist", "Also does not exist"},
-			expectedValues: nil,
-			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			name:              "Get all non-existent Keys",
+			keys:              []string{"Does not exist", "Also does not exist"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:           "Get some non-existent Keys",
-			keys:           []string{"one", "Does not exist", "Also does not exist"},
-			expectedValues: nil,
-			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			name:              "Get some non-existent Keys",
+			keys:              []string{"one", "Does not exist", "Also does not exist"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
 		},
 		{
-			name:           "Handle HTTP error",
-			keys:           []string{"Does not exist"},
-			expectedValues: nil,
-			expectedError:  pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
+			name:              "Handle HTTP error",
+			keys:              []string{"Does not exist"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
 			caller: ErrorMockCaller{
-				StatusCode: 404,
+				ReturnError: true,
+				StatusCode:  404,
+			},
+		},
+		{
+			name:              "Handle non-200 HTTP response",
+			keys:              []string{"Does not exist"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			caller: ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
 			},
 		},
 	}
@@ -179,29 +201,34 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ssm := HttpSecretStoreManager{
 				HttpConfig: cfgHttp,
-				HttpCaller: &InMemoryMockCaller{
-					Data: testData,
-				}}
+				HttpCaller: test.caller}
 
 			actual, err := ssm.GetValues(test.keys...)
-			if test.expectedError != nil && err == nil {
+			if test.expectedErrorType != nil && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}
 
-			if test.expectedError == nil && err != nil {
+			if !test.expectError && err != nil {
 				t.Errorf("Unexpected error: %s", err.Error())
 			}
 
-			if test.expectedError != nil && !reflect.DeepEqual(err, test.expectedError) {
-				t.Errorf("Observed error doesn't match expected.\nExpected: %v\nActual: %v\n", test.expectedError, err)
+			if test.expectError && test.expectedErrorType != nil {
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
 			}
 
-			for k, expected := range test.expectedValues {
-				if actual[k] != expected {
-					t.Errorf("Expected value '%s', but got '%s'", expected, actual[k])
+			if !test.expectError {
+				for k, expected := range test.expectedValues {
+					if actual[k] != expected {
+						t.Errorf("Expected value '%s', but got '%s'", expected, actual[k])
 
+					}
 				}
 			}
 		})
+
 	}
 }
