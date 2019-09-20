@@ -36,7 +36,7 @@ pipeline {
         stage('Multi-Arch Build') {
             // fan out
             parallel {
-                stage('Test amd64') {
+                stage('Test x86') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.build'
