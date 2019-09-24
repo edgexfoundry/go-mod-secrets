@@ -19,11 +19,18 @@ import (
 	"strings"
 )
 
-// ErrSecretStoreConn error for communication errors with the underlying storage mechanism
-type ErrSecretStoreConn struct{}
+// ErrSecretStore error for unexpected problems with the secret store.
+type ErrSecretStore struct {
+	description string
+}
 
-func (ErrSecretStoreConn) Error() string {
-	return "Unable to obtain from underlying data-store"
+func (e ErrSecretStore) Error() string {
+	return fmt.Sprintf("Unable to obtain secrets from underlying data-store: %s", e.description)
+}
+
+// NewErrSecretStore creates an ErrSecretStore error type.
+func NewErrSecretStore(description string) ErrSecretStore {
+	return ErrSecretStore{description: description}
 }
 
 // ErrSecretsNotFound error when a secret cannot be found. This aids in differentiating between empty("") values and non-existent keys

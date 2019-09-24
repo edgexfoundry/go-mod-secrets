@@ -89,6 +89,10 @@ func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
 	defer resp.Body.Close()
 	var result map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&result)
