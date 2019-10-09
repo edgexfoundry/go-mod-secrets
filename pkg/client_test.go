@@ -18,6 +18,7 @@ import (
 	"testing"
 )
 
+var TestPath = "/data"
 var TestClient = SecretClient{
 	Manager: MockSecretStoreManager{
 		Secrets: map[string]string{
@@ -39,7 +40,7 @@ func reset() {
 func TestSecretClient_GetSecret(t *testing.T) {
 	reset()
 
-	actual, err := TestClient.GetSecrets("one")
+	actual, err := TestClient.GetSecrets(TestPath, "one")
 	if err != nil {
 		t.Error("Failed to obtain value: " + err.Error())
 	}
@@ -52,7 +53,7 @@ func TestSecretClient_GetSecret(t *testing.T) {
 func TestSecretClient_GetSecrets(t *testing.T) {
 	reset()
 
-	actual, err := TestClient.GetSecrets("one", "two")
+	actual, err := TestClient.GetSecrets(TestPath, "one", "two")
 	if err != nil {
 		t.Error("Failed to obtain value: " + err.Error())
 	}
@@ -70,7 +71,11 @@ type MockSecretStoreManager struct {
 	Secrets map[string]string
 }
 
-func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
+func (mssm MockSecretStoreManager) GetValues(path string, keys ...string) (map[string]string, error) {
+	if path != TestPath {
+		return nil, NewErrSecretsNotFound(keys)
+	}
+
 	data := mssm.Secrets
 
 	values := make(map[string]string)

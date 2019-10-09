@@ -16,7 +16,8 @@ package pkg
 
 // SecretStoreManager provides functionality for interacting with an underlying data-store.
 type SecretStoreManager interface {
-	// GetValue Retrieves the values associated with the specified keys.
+	// GetValue retrieves the values associated with the specified keys and path. If no keys are specified then all of
+	// the keys associated with the path will be returned.
 	// returns ErrSecretsNotFound if any of the specified keys do not have a value set.
-	GetValues(keys ...string) (map[string]string, error)
+	GetValues(path string, keys ...string) (map[string]string, error)
 }

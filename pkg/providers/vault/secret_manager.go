@@ -46,17 +46,23 @@ func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 
 }
 
-func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
-	data, err := c.getAllKeys()
+// GetValues retrieves the secrets at the provided path that match the specified keys.
+func (c HttpSecretStoreManager) GetValues(path string, keys ...string) (map[string]string, error) {
+	data, err := c.getAllKeys(path)
 	if err != nil {
 		return nil, err
+	}
+
+	// Do not filter any of the secrets
+	if len(keys) <= 0 {
+		return data, nil
 	}
 
 	values := make(map[string]string)
 	var notFound []string
 
 	for _, key := range keys {
-		value, success := data[key].(string)
+		value, success := data[key]
 		if !success {
 			notFound = append(notFound, key)
 			continue
@@ -72,8 +78,10 @@ func (c HttpSecretStoreManager) GetValues(keys ...string) (map[string]string, er
 	return values, nil
 }
 
-func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
-	req, err := http.NewRequest(http.MethodGet, c.HttpConfig.BuildURL(), nil)
+// getAllKeys obtains all the keys that reside at the provided path.
+func (c HttpSecretStoreManager) getAllKeys(path string) (map[string]string, error) {
+	url := c.HttpConfig.BuildURL() + path
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -101,12 +109,17 @@ func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
 	}
 
 	data, success := result["data"].(map[string]interface{})
-	if !success {
-		err = fmt.Errorf("no data retrieved from secrets service")
-		return nil, err
+	if !success || len(data) <= 0 {
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secrets are present at the path: '%s'", path))
 	}
 
-	return data, nil
+	// Cast the secret values to strings
+	secrets := make(map[string]string)
+	for k, v := range data {
+		secrets[k] = v.(string)
+	}
+
+	return secrets, nil
 }
 
 // createHttpClient creates and configures an HTTP client which can be used to communicate with the underlying
@@ -114,16 +127,16 @@ func (c HttpSecretStoreManager) getAllKeys() (map[string]interface{}, error) {
 // Returns ErrCaRootCert is there is an error with the certificate.
 func createHttpClient(config SecretConfig) (Caller, error) {
 
-	if config.RootCaCert == "" {
+	if config.RootCaCertPath == "" {
 		return http.DefaultClient, nil
 	}
 
 	// Read and load the CA Root certificate so the client will be able to use TLS without skipping the verification of
 	// the cert received by the server.
-	caCert, err := ioutil.ReadFile(config.RootCaCert)
+	caCert, err := ioutil.ReadFile(config.RootCaCertPath)
 	if err != nil {
 		return nil, ErrCaRootCert{
-			path:        config.RootCaCert,
+			path:        config.RootCaCertPath,
 			description: err.Error(),
 		}
 	}

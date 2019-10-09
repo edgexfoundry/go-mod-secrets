@@ -21,10 +21,8 @@ type SecretClient struct {
 }
 
 // GetSecrets returns the values requested at the provided keys.
-// If the secret manager returns a nil or empty map, a SecretsNotFound error is returned.
-// If any other error is encountered by the secret manager it is bubbled up and no partial results are provided.
-func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
-	secrets, err := sc.Manager.GetValues(keys...)
+func (sc SecretClient) GetSecrets(path string, keys ...string) (map[string]string, error) {
+	secrets, err := sc.Manager.GetValues(path, keys...)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,9 @@
 // vault defines structs that will be used frequently by clients which utilize HTTP transport.
 package vault
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
@@ -24,7 +26,7 @@ type SecretConfig struct {
 	Path           string
 	Protocol       string
 	Namespace      string
-	RootCaCert     string
+	RootCaCertPath string
 	ServerName     string
 	Authentication AuthenticationInfo
 }
