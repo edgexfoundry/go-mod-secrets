@@ -24,30 +24,28 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
-// HttpSecretStoreManager defines the behavior for interacting with the Vault REST secret key/value store via HTTP.
-type HttpSecretStoreManager struct {
+// Client defines the behavior for interacting with the Vault REST secret key/value store via HTTP(S).
+type Client struct {
 	HttpConfig SecretConfig
 	HttpCaller Caller
 }
 
-// NewSecretClient constructs a SecretClient which communicates with Vault via HTTP
+// NewSecretClient constructs a SecretClient which communicates with Vault via HTTP(S)
 func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 	httpClient, err := createHttpClient(config)
 	if err != nil {
-		return pkg.SecretClient{}, err
+		return Client{}, err
 	}
 
-	return pkg.SecretClient{
-		Manager: HttpSecretStoreManager{
-			HttpConfig: config,
-			HttpCaller: httpClient,
-		},
+	return Client{
+		HttpConfig: config,
+		HttpCaller: httpClient,
 	}, nil
 
 }
 
 // GetValues retrieves the secrets at the provided path that match the specified keys.
-func (c HttpSecretStoreManager) GetValues(path string, keys ...string) (map[string]string, error) {
+func (c Client) GetSecrets(path string, keys ...string) (map[string]string, error) {
 	data, err := c.getAllKeys(path)
 	if err != nil {
 		return nil, err
@@ -79,7 +77,7 @@ func (c HttpSecretStoreManager) GetValues(path string, keys ...string) (map[stri
 }
 
 // getAllKeys obtains all the keys that reside at the provided path.
-func (c HttpSecretStoreManager) getAllKeys(path string) (map[string]string, error) {
+func (c Client) getAllKeys(path string) (map[string]string, error) {
 	url := c.HttpConfig.BuildURL() + path
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

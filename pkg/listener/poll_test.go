@@ -30,16 +30,13 @@ var Secrets = map[string]string{
 }
 
 var TestPath = "/data"
-var TestClient = pkg.SecretClient{
-	Manager: MockSecretStoreManager{
-		secretStore: &Secrets,
-	}}
+var TestClient = MockSecretClient{secretStore: &Secrets}
 
-type MockSecretStoreManager struct {
+type MockSecretClient struct {
 	secretStore *map[string]string
 }
 
-func (mssm MockSecretStoreManager) GetValues(path string, keys ...string) (map[string]string, error) {
+func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string]string, error) {
 	if path != TestPath {
 		return nil, pkg.NewErrSecretsNotFound(keys)
 	}

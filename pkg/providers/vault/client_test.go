@@ -247,11 +247,11 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ssm := HttpSecretStoreManager{
+			ssm := Client{
 				HttpConfig: cfgHttp,
 				HttpCaller: test.caller}
 
-			actual, err := ssm.GetValues(test.path, test.keys...)
+			actual, err := ssm.GetSecrets(test.path, test.keys...)
 			if test.expectedErrorType != nil && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}
