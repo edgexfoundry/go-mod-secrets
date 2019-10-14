@@ -29,16 +29,18 @@ var Secrets = map[string]string{
 	"three": "tres",
 }
 
-var TestClient = pkg.SecretClient{
-	Manager: MockSecretStoreManager{
-		secretStore: &Secrets,
-	}}
+var TestPath = "/data"
+var TestClient = MockSecretClient{secretStore: &Secrets}
 
-type MockSecretStoreManager struct {
+type MockSecretClient struct {
 	secretStore *map[string]string
 }
 
-func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string, error) {
+func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string]string, error) {
+	if path != TestPath {
+		return nil, pkg.NewErrSecretsNotFound(keys)
+	}
+
 	var notFound []string
 	secrets := make(map[string]string)
 	for _, key := range keys {
@@ -59,26 +61,69 @@ func (mssm MockSecretStoreManager) GetValues(keys ...string) (map[string]string,
 }
 
 func TestGetKeys(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), []int{0}, []string{"one", "two"})
-	s, err := c.GetKeys()
-	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
-		return
+	tests := []struct {
+		name              string
+		client            pkg.SecretClient
+		path              string
+		keys              []string
+		expectedResult    map[string]string
+		expectError       bool
+		expectedErrorType error
+	}{
+		{
+			name:              "Get keys",
+			client:            TestClient,
+			path:              TestPath,
+			keys:              []string{"one", "two"},
+			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "Get keys from unknown path",
+			client:            TestClient,
+			path:              "/unknownpath",
+			keys:              []string{"one", "two"},
+			expectedResult:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.ErrSecretsNotFound{},
+		},
 	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.path, test.keys)
+			actual, err := c.GetKeys()
 
-	expected := map[string]string{
-		"one": "uno",
-		"two": "dos",
-	}
+			if test.expectError && err == nil {
+				t.Error("Expected an error")
+				return
+			}
 
-	if !reflect.DeepEqual(s, expected) {
-		t.Errorf("Expected: %v, but got:%v", expected, s)
-		return
+			if !test.expectError && err != nil {
+				t.Errorf("Unexpectedly encountered error: %s", err.Error())
+				return
+			}
+
+			if test.expectError && test.expectedErrorType != nil {
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
+				return
+			}
+
+			if !reflect.DeepEqual(test.expectedResult, actual) {
+				t.Errorf("Expected result does not match the observed.\nExpected: %v\nObserved: %v\n", test.expectedResult, actual)
+				return
+			}
+
+		})
 	}
 }
 
 func TestGetKeysError(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), []int{0}, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), []int{0}, TestPath, []string{"doesNotExist"})
 	_, err := c.GetKeys()
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -95,7 +140,7 @@ func TestGetKeysError(t *testing.T) {
 
 func TestErrorPropagation(t *testing.T) {
 	errChan := make(chan error)
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), errChan, []int{0}, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), errChan, []int{0}, TestPath, []string{"doesNotExist"})
 
 	err := c.Start()
 	if err != nil {
@@ -112,7 +157,7 @@ func TestErrorPropagation(t *testing.T) {
 }
 
 func TestStopStateCheck(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, []string{"one"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
 	err := c.Stop()
 	if err == nil {
 		t.Errorf("Expected error for invalid state")
@@ -128,7 +173,7 @@ func TestStopStateCheck(t *testing.T) {
 }
 
 func TestStartStateCheck(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, []string{"one"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
 	err := c.Start()
 	if err != nil {
 		t.Errorf("Unexpected error ocurred: %s", err.Error())
@@ -159,7 +204,7 @@ func TestNoUpdate(t *testing.T) {
 
 	errChan := make(chan error)
 	updateChan := make(chan map[string]string)
-	c := NewInMemoryCacheListener(TestClient, updateChan, errChan, []int{0}, []string{"one", "two"})
+	c := NewInMemoryCacheListener(TestClient, updateChan, errChan, []int{0}, TestPath, []string{"one", "two"})
 	_, err := c.GetKeys()
 	if err != nil {
 		t.Errorf("Unexpected error ocurred: %s", err.Error())
@@ -191,7 +236,7 @@ func TestBackoffPattern(t *testing.T) {
 	numOfTries := len(backoffPattern) + 1
 
 	completeChan := make(chan struct{})
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), backoffPattern, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), backoffPattern, TestPath, []string{"doesNotExist"})
 
 	// Warp the Timer constructor with some verification logic so we can validate that the underlying timer is being
 	// invoked with the correct intervals.
@@ -239,7 +284,7 @@ func TestStateConcurrency(t *testing.T) {
 	t.Parallel()
 
 	numOfRestarts := 1000
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, []string{"one"})
+	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
 
 	// Create 2 go-routines which will restart the listener concurrently to test the thread-safety of the state
 	// modifications.

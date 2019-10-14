@@ -20,12 +20,14 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
+var TestPath = "/data"
 var TestConnError = pkg.NewErrSecretStore("testing conn error")
 var TestNamespace = "database"
 var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Namespace: TestNamespace}
@@ -66,6 +68,11 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 
 	switch req.Method {
 	case http.MethodGet:
+		if req.URL.Path != TestPath {
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
 		r, _ := json.Marshal(immc.Data)
 		return &http.Response{
 			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
@@ -87,7 +94,7 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 
 func TestNewSecretClient(t *testing.T) {
 	cfgHttp := SecretConfig{Host: "localhost", Port: 8080}
-	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, RootCaCert: "/non-existent-directory/rootCa.crt"}
+	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, RootCaCertPath: "/non-existent-directory/rootCa.crt"}
 	cfgNamespace := SecretConfig{Host: "localhost", Port: 8080, Namespace: "database"}
 
 	tests := []struct {
@@ -118,6 +125,7 @@ func TestNewSecretClient(t *testing.T) {
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	tests := []struct {
 		name              string
+		path              string
 		keys              []string
 		expectedValues    map[string]string
 		expectError       bool
@@ -126,6 +134,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	}{
 		{
 			name:              "Get Key",
+			path:              TestPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -136,6 +145,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get Keys",
+			path:              TestPath,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -145,7 +155,19 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
+			name:              "Get all keys",
+			path:              TestPath,
+			keys:              nil,
+			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
+			expectError:       false,
+			expectedErrorType: nil,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
 			name:              "Get non-existent Key",
+			path:              TestPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -156,6 +178,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get all non-existent Keys",
+			path:              TestPath,
 			keys:              []string{"Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -166,6 +189,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get some non-existent Keys",
+			path:              TestPath,
 			keys:              []string{"one", "Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -176,6 +200,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Handle HTTP error",
+			path:              TestPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -187,6 +212,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
+			path:              TestPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -196,14 +222,36 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				StatusCode:  404,
 			},
 		},
+		{
+			name:              "Get Key with unknown path",
+			path:              "/nonexistentpath",
+			keys:              []string{"one"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "URL Error",
+			path:              "bad path for URL",
+			keys:              []string{"one"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: &url.Error{},
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ssm := HttpSecretStoreManager{
+			ssm := Client{
 				HttpConfig: cfgHttp,
 				HttpCaller: test.caller}
 
-			actual, err := ssm.GetValues(test.keys...)
+			actual, err := ssm.GetSecrets(test.path, test.keys...)
 			if test.expectedErrorType != nil && err == nil {
 				t.Errorf("Expected error but none was recieved")
 			}

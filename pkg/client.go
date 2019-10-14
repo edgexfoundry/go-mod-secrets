@@ -16,18 +16,11 @@
 // implementations.
 package pkg
 
-type SecretClient struct {
-	Manager SecretStoreManager
-}
-
-// GetSecrets returns the values requested at the provided keys.
-// If the secret manager returns a nil or empty map, a SecretsNotFound error is returned.
-// If any other error is encountered by the secret manager it is bubbled up and no partial results are provided.
-func (sc SecretClient) GetSecrets(keys ...string) (map[string]string, error) {
-	secrets, err := sc.Manager.GetValues(keys...)
-	if err != nil {
-		return nil, err
-	}
-
-	return secrets, nil
+// SecretClient provides a contract for retrieving secrets from a secret store manager.
+type SecretClient interface {
+	// GetSecrets retrieves secrets from a secret store.
+	// path specifies the type or location of the secrets to retrieve.
+	// keys specifies the secrets which to retrieve. If no keys are provided then all the keys associated with the
+	// specified path will be returned.
+	GetSecrets(path string, keys ...string) (map[string]string, error)
 }

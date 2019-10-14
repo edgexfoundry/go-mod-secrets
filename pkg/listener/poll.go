@@ -26,6 +26,8 @@ import (
 type InMemoryCacheListener struct {
 	// secretClient retrieves secrets from a secret store.
 	secretClient pkg.SecretClient
+	// path contains the location of the secrets.
+	path string
 	// keys contains the keys for which to provide updates.
 	keys []string
 	// updaterChan communicates updates to the keys/
@@ -49,9 +51,10 @@ type InMemoryCacheListener struct {
 }
 
 // NewInMemoryCacheListener creates a new InMemoryCacheListener
-func NewInMemoryCacheListener(client pkg.SecretClient, updateChan chan map[string]string, errorChan chan error, backoffPattern []int, keys []string) InMemoryCacheListener {
+func NewInMemoryCacheListener(client pkg.SecretClient, updateChan chan map[string]string, errorChan chan error, backoffPattern []int, path string, keys []string) InMemoryCacheListener {
 	return InMemoryCacheListener{
 		secretClient:      client,
+		path:              path,
 		keys:              keys,
 		updaterChan:       updateChan,
 		errorChan:         errorChan,
@@ -69,7 +72,7 @@ func (c *InMemoryCacheListener) GetKeys() (map[string]string, error) {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
 
-	secrets, err := c.secretClient.GetSecrets(c.keys...)
+	secrets, err := c.secretClient.GetSecrets(c.path, c.keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +127,7 @@ func (c *InMemoryCacheListener) update() {
 		select {
 		case <-timer.C:
 			{
-				secrets, err := c.secretClient.GetSecrets(c.keys...)
+				secrets, err := c.secretClient.GetSecrets(c.path, c.keys...)
 				if err != nil {
 					c.errorChan <- err
 					errorCount++
