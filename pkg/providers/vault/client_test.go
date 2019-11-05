@@ -30,7 +30,6 @@ import (
 var TestPath = "/data"
 var TestConnError = pkg.NewErrSecretStore("testing conn error")
 var TestNamespace = "database"
-var cfgHttp = SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Namespace: TestNamespace}
 var testData = map[string]map[string]string{
 	"data": {
 		"one":   "uno",
@@ -42,9 +41,11 @@ var testData = map[string]map[string]string{
 type ErrorMockCaller struct {
 	StatusCode  int
 	ReturnError bool
+	DoCallCount int
 }
 
-func (emc ErrorMockCaller) Do(req *http.Request) (*http.Response, error) {
+func (emc *ErrorMockCaller) Do(req *http.Request) (*http.Response, error) {
+	emc.DoCallCount++
 	if emc.ReturnError {
 		return &http.Response{
 			StatusCode: emc.StatusCode,
@@ -57,11 +58,23 @@ func (emc ErrorMockCaller) Do(req *http.Request) (*http.Response, error) {
 }
 
 type InMemoryMockCaller struct {
-	Data   map[string]map[string]string
-	Result map[string]string
+	Data                 map[string]map[string]string
+	Result               map[string]string
+	DoCallCount          int
+	nErrorsReturned      int
+	NErrorsBeforeSuccess int
 }
 
 func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
+	immc.DoCallCount++
+	if immc.NErrorsBeforeSuccess != 0 {
+		if immc.nErrorsReturned != immc.NErrorsBeforeSuccess {
+			immc.nErrorsReturned++
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
+	}
 	if req.Header.Get(NamespaceHeader) != TestNamespace {
 		return nil, errors.New("namespace header is expected but not present in request")
 	}
@@ -130,6 +143,8 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		expectedValues    map[string]string
 		expectError       bool
 		expectedErrorType error
+		retries           int
+		expectedDoCallNum int
 		caller            Caller
 	}{
 		{
@@ -139,6 +154,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
 			expectedErrorType: nil,
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -150,6 +166,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
 			expectedErrorType: nil,
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -161,6 +178,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
 			expectError:       false,
 			expectedErrorType: nil,
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -172,6 +190,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -183,6 +202,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -194,6 +214,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -205,7 +226,8 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: TestConnError,
-			caller: ErrorMockCaller{
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
 				ReturnError: true,
 				StatusCode:  404,
 			},
@@ -217,7 +239,8 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: TestConnError,
-			caller: ErrorMockCaller{
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
 				ReturnError: false,
 				StatusCode:  404,
 			},
@@ -229,6 +252,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -244,16 +268,102 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				Data: testData,
 			},
 		},
+		{
+			name:              "Retry 10 times, 1st success",
+			retries:           10,
+			path:              TestPath,
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "Retry 9 times, all fail",
+			retries:           9,
+			path:              TestPath,
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			// expected is retries + 1
+			expectedDoCallNum: 10,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+			},
+		},
+		{
+			name:              "Retry 9 times, 1st catastrophic failure",
+			retries:           9,
+			path:              TestPath,
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: true,
+			},
+		},
+		{
+			name:              "Retry 9 times, last works",
+			retries:           9,
+			path:              TestPath,
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedDoCallNum: 10,
+			caller: &InMemoryMockCaller{
+				NErrorsBeforeSuccess: 9,
+				Data:                 testData,
+			},
+		},
+		{
+			name:              "Invalid retry num",
+			retries:           -1,
+			path:              TestPath,
+			keys:              []string{"one"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 0,
+			caller: &ErrorMockCaller{
+				ReturnError: true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := SecretConfig{
+				Host:                    "localhost",
+				Port:                    8080,
+				Protocol:                "http",
+				Namespace:               TestNamespace,
+				AdditionalRetryAttempts: test.retries,
+			}
 			ssm := Client{
-				HttpConfig: cfgHttp,
-				HttpCaller: test.caller}
+				HttpConfig: cfgHTTP,
+				HttpCaller: test.caller,
+			}
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
 			if test.expectedErrorType != nil && err == nil {
 				t.Errorf("Expected error but none was recieved")
+			}
+
+			switch v := test.caller.(type) {
+			case *ErrorMockCaller:
+				if test.expectedDoCallNum != v.DoCallCount {
+					t.Errorf("Expected %d ErrorMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
+				}
+			case *InMemoryMockCaller:
+				if test.expectedDoCallNum != v.DoCallCount {
+					t.Errorf("Expected %d InMemoryMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
+				}
 			}
 
 			if !test.expectError && err != nil {

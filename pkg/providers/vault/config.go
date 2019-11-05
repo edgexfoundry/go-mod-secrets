@@ -17,18 +17,21 @@ package vault
 
 import (
 	"fmt"
+	"time"
 )
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
-	Host           string
-	Port           int
-	Path           string
-	Protocol       string
-	Namespace      string
-	RootCaCertPath string
-	ServerName     string
-	Authentication AuthenticationInfo
+	Host                    string
+	Port                    int
+	Path                    string
+	Protocol                string
+	Namespace               string
+	RootCaCertPath          string
+	ServerName              string
+	Authentication          AuthenticationInfo
+	AdditionalRetryAttempts int
+	RetryWaitPeriod         time.Duration
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
