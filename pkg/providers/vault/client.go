@@ -11,6 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  *******************************************************************************/
+
 package vault
 
 import (
@@ -33,7 +34,7 @@ type Client struct {
 
 // NewSecretClient constructs a SecretClient which communicates with Vault via HTTP(S)
 func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
-	httpClient, err := createHttpClient(config)
+	httpClient, err := createHTTPClient(config)
 	if err != nil {
 		return Client{}, err
 	}
@@ -151,10 +152,10 @@ func (c Client) getAllKeys(path string) (map[string]string, error) {
 	return secrets, nil
 }
 
-// createHttpClient creates and configures an HTTP client which can be used to communicate with the underlying
+// createHTTPClient creates and configures an HTTP client which can be used to communicate with the underlying
 // secret-store based on the SecretConfig.
 // Returns ErrCaRootCert is there is an error with the certificate.
-func createHttpClient(config SecretConfig) (Caller, error) {
+func createHTTPClient(config SecretConfig) (Caller, error) {
 
 	if config.RootCaCertPath == "" {
 		return http.DefaultClient, nil

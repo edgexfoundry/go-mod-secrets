@@ -106,7 +106,7 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestNewSecretClient(t *testing.T) {
-	cfgHttp := SecretConfig{Host: "localhost", Port: 8080}
+	cfgHTTP := SecretConfig{Host: "localhost", Port: 8080}
 	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, RootCaCertPath: "/non-existent-directory/rootCa.crt"}
 	cfgNamespace := SecretConfig{Host: "localhost", Port: 8080, Namespace: "database"}
 
@@ -115,7 +115,7 @@ func TestNewSecretClient(t *testing.T) {
 		cfg       SecretConfig
 		expectErr bool
 	}{
-		{"NewSecretClient HTTP configuration", cfgHttp, false},
+		{"NewSecretClient HTTP configuration", cfgHTTP, false},
 		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
 		{"NewSecretClient with Namespace", cfgNamespace, false},
 	}
