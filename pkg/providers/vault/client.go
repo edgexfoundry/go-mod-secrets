@@ -45,7 +45,7 @@ func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 
 }
 
-// GetValues retrieves the secrets at the provided path that match the specified keys.
+// GetSecrets retrieves the secrets at the provided path that match the specified keys.
 func (c Client) GetSecrets(path string, keys ...string) (map[string]string, error) {
 	data := make(map[string]string)
 	var err error
