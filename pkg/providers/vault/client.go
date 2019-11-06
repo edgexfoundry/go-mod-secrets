@@ -47,9 +47,39 @@ func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 
 // GetValues retrieves the secrets at the provided path that match the specified keys.
 func (c Client) GetSecrets(path string, keys ...string) (map[string]string, error) {
-	data, err := c.getAllKeys(path)
-	if err != nil {
-		return nil, err
+	data := make(map[string]string)
+	var err error
+	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
+	switch {
+	case addRetryAttempts < 0:
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
+	case addRetryAttempts == 0:
+		// no retries
+		data, err = c.getAllKeys(path)
+		if err != nil {
+			return nil, err
+		}
+	case addRetryAttempts > 0:
+		// do some retries
+		// note the limit is 1 + additional retry attempts, cause we always need
+		// to do the first try
+		for tryNum := 0; tryNum < 1+addRetryAttempts; tryNum++ {
+			data, err = c.getAllKeys(path)
+			if err == nil {
+				break
+			}
+
+			// TODO: this will be run again if we hit the limit, when ideally we
+			// wouldn't wait cause we hit the limit and failed, but this is in
+			// the error case, so it's low priority to fix
+			time.Sleep(c.HttpConfig.RetryWaitPeriod)
+		}
+
+		// since we finished the above loop, then check if the last iteration
+		// failed
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Do not filter any of the secrets
@@ -91,63 +121,13 @@ func (c Client) getAllKeys(path string) (map[string]string, error) {
 		req.Header.Set(NamespaceHeader, c.HttpConfig.Namespace)
 	}
 
-	var resp *http.Response
-	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
-	switch {
-	case addRetryAttempts < 0:
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
-		// the number of retries is infinite
-		// TODO: is this useful? leaving this here in case it's useful eventually
-		// needs tests though...
-		// for {
-		// 	resp, err = c.HttpCaller.Do(req)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
+	resp, err := c.HttpCaller.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
-		// 	// don't distribute the not here to keep the logic simple to
-		// 	// understand
-		// 	if !(resp.StatusCode < 200 || resp.StatusCode > 299) {
-		// 		break
-		// 	}
-
-		// 	time.Sleep(c.HttpConfig.RetryWaitPeriod)
-		// }
-	case addRetryAttempts == 0:
-		// no retries
-		resp, err = c.HttpCaller.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
-		}
-
-	case addRetryAttempts > 0:
-		// do some retries
-		// note the limit is 1 + additional retry attempts, cause we always need
-		// to do 1
-		for tryNum := 0; tryNum < 1+addRetryAttempts; tryNum++ {
-			resp, err = c.HttpCaller.Do(req)
-			if err != nil {
-				return nil, err
-			}
-
-			if !(resp.StatusCode < 200 || resp.StatusCode > 299) {
-				break
-			}
-
-			// TODO: this will be run again if we hit the limit, when ideally we
-			// wouldn't wait cause we hit the limit and failed, but this is in
-			// the error case, so it's low priority to fix
-			time.Sleep(c.HttpConfig.RetryWaitPeriod)
-		}
-		// since we finished the above loop, then check if the last iteration
-		// failed
-		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
-		}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
 	defer resp.Body.Close()

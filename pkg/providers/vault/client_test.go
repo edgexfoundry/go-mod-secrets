@@ -282,7 +282,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Retry 9 times, all fail",
+			name:              "Retry 9 times, all HTTP status failures",
 			retries:           9,
 			path:              TestPath,
 			keys:              []string{"one"},
@@ -297,14 +297,14 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Retry 9 times, 1st catastrophic failure",
+			name:              "Retry 9 times, all catastrophic failure",
 			retries:           9,
 			path:              TestPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
 			expectedErrorType: TestConnError,
-			expectedDoCallNum: 1,
+			expectedDoCallNum: 10,
 			caller: &ErrorMockCaller{
 				ReturnError: true,
 			},
