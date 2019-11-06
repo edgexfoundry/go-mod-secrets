@@ -106,7 +106,7 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestNewSecretClient(t *testing.T) {
-	cfgHttp := SecretConfig{Host: "localhost", Port: 8080}
+	cfgHTTP := SecretConfig{Host: "localhost", Port: 8080}
 	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, RootCaCertPath: "/non-existent-directory/rootCa.crt"}
 	cfgNamespace := SecretConfig{Host: "localhost", Port: 8080, Namespace: "database"}
 
@@ -115,7 +115,7 @@ func TestNewSecretClient(t *testing.T) {
 		cfg       SecretConfig
 		expectErr bool
 	}{
-		{"NewSecretClient HTTP configuration", cfgHttp, false},
+		{"NewSecretClient HTTP configuration", cfgHTTP, false},
 		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
 		{"NewSecretClient with Namespace", cfgNamespace, false},
 	}
@@ -282,7 +282,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Retry 9 times, all fail",
+			name:              "Retry 9 times, all HTTP status failures",
 			retries:           9,
 			path:              TestPath,
 			keys:              []string{"one"},
@@ -297,14 +297,14 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Retry 9 times, 1st catastrophic failure",
+			name:              "Retry 9 times, all catastrophic failure",
 			retries:           9,
 			path:              TestPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
 			expectedErrorType: TestConnError,
-			expectedDoCallNum: 1,
+			expectedDoCallNum: 10,
 			caller: &ErrorMockCaller{
 				ReturnError: true,
 			},

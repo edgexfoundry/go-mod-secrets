@@ -12,7 +12,7 @@
  * the License.
  *******************************************************************************/
 
-// vault defines structs that will be used frequently by clients which utilize HTTP transport.
+// Package vault defines structs that will be used frequently by clients which utilize HTTP transport.
 package vault
 
 import (
