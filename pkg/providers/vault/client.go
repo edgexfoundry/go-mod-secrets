@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
@@ -90,13 +91,63 @@ func (c Client) getAllKeys(path string) (map[string]string, error) {
 		req.Header.Set(NamespaceHeader, c.HttpConfig.Namespace)
 	}
 
-	resp, err := c.HttpCaller.Do(req)
-	if err != nil {
-		return nil, err
-	}
+	var resp *http.Response
+	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
+	switch {
+	case addRetryAttempts < 0:
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
+		// the number of retries is infinite
+		// TODO: is this useful? leaving this here in case it's useful eventually
+		// needs tests though...
+		// for {
+		// 	resp, err = c.HttpCaller.Do(req)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		// 	// don't distribute the not here to keep the logic simple to
+		// 	// understand
+		// 	if !(resp.StatusCode < 200 || resp.StatusCode > 299) {
+		// 		break
+		// 	}
+
+		// 	time.Sleep(c.HttpConfig.RetryWaitPeriod)
+		// }
+	case addRetryAttempts == 0:
+		// no retries
+		resp, err = c.HttpCaller.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode > 299 {
+			return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		}
+
+	case addRetryAttempts > 0:
+		// do some retries
+		// note the limit is 1 + additional retry attempts, cause we always need
+		// to do 1
+		for tryNum := 0; tryNum < 1+addRetryAttempts; tryNum++ {
+			resp, err = c.HttpCaller.Do(req)
+			if err != nil {
+				return nil, err
+			}
+
+			if !(resp.StatusCode < 200 || resp.StatusCode > 299) {
+				break
+			}
+
+			// TODO: this will be run again if we hit the limit, when ideally we
+			// wouldn't wait cause we hit the limit and failed, but this is in
+			// the error case, so it's low priority to fix
+			time.Sleep(c.HttpConfig.RetryWaitPeriod)
+		}
+		// since we finished the above loop, then check if the last iteration
+		// failed
+		if resp.StatusCode < 200 || resp.StatusCode > 299 {
+			return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		}
 	}
 
 	defer resp.Body.Close()
