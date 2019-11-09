@@ -39,6 +39,14 @@ func NewSecretClient(config SecretConfig) (pkg.SecretClient, error) {
 		return Client{}, err
 	}
 
+	if config.RetryWaitPeriod != "" {
+		retryTimeDuration, err := time.ParseDuration(config.RetryWaitPeriod)
+		if err != nil {
+			return nil, err
+		}
+		config.retryWaitPeriodTime = retryTimeDuration
+	}
+
 	return Client{
 		HttpConfig: config,
 		HttpCaller: httpClient,
@@ -73,7 +81,7 @@ func (c Client) GetSecrets(path string, keys ...string) (map[string]string, erro
 			// TODO: this will be run again if we hit the limit, when ideally we
 			// wouldn't wait cause we hit the limit and failed, but this is in
 			// the error case, so it's low priority to fix
-			time.Sleep(c.HttpConfig.RetryWaitPeriod)
+			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
 		}
 
 		// since we finished the above loop, then check if the last iteration

@@ -31,7 +31,8 @@ type SecretConfig struct {
 	ServerName              string
 	Authentication          AuthenticationInfo
 	AdditionalRetryAttempts int
-	RetryWaitPeriod         time.Duration
+	RetryWaitPeriod         string
+	retryWaitPeriodTime     time.Duration
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider

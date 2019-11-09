@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
@@ -109,19 +110,25 @@ func TestNewSecretClient(t *testing.T) {
 	cfgHTTP := SecretConfig{Host: "localhost", Port: 8080}
 	cfgInvalidCertPath := SecretConfig{Host: "localhost", Port: 8080, RootCaCertPath: "/non-existent-directory/rootCa.crt"}
 	cfgNamespace := SecretConfig{Host: "localhost", Port: 8080, Namespace: "database"}
+	cfgInvalidTime := SecretConfig{Host: "localhost", Port: 8080, RetryWaitPeriod: "not a real time spec"}
+	cfgValidTime := SecretConfig{Host: "localhost", Port: 8080, RetryWaitPeriod: "1s"}
+	s := time.Second
 
 	tests := []struct {
-		name      string
-		cfg       SecretConfig
-		expectErr bool
+		name         string
+		cfg          SecretConfig
+		expectErr    bool
+		expectedTime *time.Duration
 	}{
-		{"NewSecretClient HTTP configuration", cfgHTTP, false},
-		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
-		{"NewSecretClient with Namespace", cfgNamespace, false},
+		{"NewSecretClient HTTP configuration", cfgHTTP, false, nil},
+		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true, nil},
+		{"NewSecretClient with Namespace", cfgNamespace, false, nil},
+		{"NewSecretClient with invalid RetryWaitPeriod", cfgInvalidTime, true, nil},
+		{"NewSecretClient with valid RetryWaitPeriod", cfgValidTime, false, &s},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewSecretClient(tt.cfg)
+			c, err := NewSecretClient(tt.cfg)
 			if err != nil {
 				if !tt.expectErr {
 					t.Errorf("unexpected error: %v", err)
@@ -129,6 +136,15 @@ func TestNewSecretClient(t *testing.T) {
 			} else {
 				if tt.expectErr {
 					t.Errorf("did not receive expected error: %s", tt.name)
+				}
+				if tt.expectedTime != nil {
+					if client, ok := c.(Client); ok {
+						if *tt.expectedTime != client.HttpConfig.retryWaitPeriodTime {
+							t.Errorf("expected parsed time as %v, got %v", *tt.expectedTime, client.HttpConfig.retryWaitPeriodTime)
+						}
+					} else {
+						t.Errorf("returned client type is not Client, is %T", c)
+					}
 				}
 			}
 		})
