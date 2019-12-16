@@ -25,7 +25,7 @@ type ErrSecretStore struct {
 }
 
 func (e ErrSecretStore) Error() string {
-	return fmt.Sprintf("Unable to obtain secrets from underlying data-store: %s", e.description)
+	return fmt.Sprintf("Error found on handling secrets from underlying data-store: %s", e.description)
 }
 
 // NewErrSecretStore creates an ErrSecretStore error type.

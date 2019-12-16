@@ -15,7 +15,9 @@
 package listener
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -58,6 +60,27 @@ func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string
 	}
 
 	return secrets, nil
+}
+
+func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string) error {
+	if path != TestPath {
+		return pkg.NewErrSecretStore(fmt.Sprintf("incorrect path for storing secrets: %s", path))
+	}
+
+	// sanity check before store secrets
+	for key, _ := range secrets {
+		// empty key is not allowed
+		if strings.TrimSpace(key) == "" {
+			return pkg.NewErrSecretStore("cannot store secrets with empty key")
+		}
+	}
+
+	// now we are ready to store good secrets
+	ss := *mssm.secretStore
+	for key, value := range secrets {
+		ss[key] = value
+	}
+	return nil
 }
 
 func TestGetKeys(t *testing.T) {
@@ -113,6 +136,88 @@ func TestGetKeys(t *testing.T) {
 				return
 			}
 
+			if !reflect.DeepEqual(test.expectedResult, actual) {
+				t.Errorf("Expected result does not match the observed.\nExpected: %v\nObserved: %v\n", test.expectedResult, actual)
+				return
+			}
+
+		})
+	}
+}
+
+func TestStoreSecrets(t *testing.T) {
+	tests := []struct {
+		name              string
+		client            pkg.SecretClient
+		path              string
+		secrets           map[string]string
+		expectedResult    map[string]string
+		expectError       bool
+		expectedErrorType error
+	}{
+		{
+			name:              "Store one secret",
+			client:            TestClient,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedResult:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "Store secrets",
+			client:            TestClient,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno", "two": "dos"},
+			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "Store secrets from unknown path",
+			client:            TestClient,
+			path:              "/unknownpath",
+			secrets:           map[string]string{"one": "uno", "two": "dos"},
+			expectedResult:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrSecretStore("incorrect path for storing secrets: /unknownpath"),
+		},
+		{
+			name:              "Store one invalid empty key of secret",
+			client:            TestClient,
+			path:              TestPath,
+			secrets:           map[string]string{"": "empty"},
+			expectedResult:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrSecretStore("cannot store secrets with empty key"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.path, nil)
+			err := c.SetSecrets(test.secrets)
+
+			if test.expectError && err == nil {
+				t.Error("Expected an error")
+				return
+			}
+
+			if !test.expectError && err != nil {
+				t.Errorf("Unexpectedly encountered error: %s", err.Error())
+				return
+			}
+
+			if test.expectError && test.expectedErrorType != nil {
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
+				return
+			}
+
+			// then retrieve to see if secrets got stored
+			actual, _ := c.GetKeys()
 			if !reflect.DeepEqual(test.expectedResult, actual) {
 				t.Errorf("Expected result does not match the observed.\nExpected: %v\nObserved: %v\n", test.expectedResult, actual)
 				return

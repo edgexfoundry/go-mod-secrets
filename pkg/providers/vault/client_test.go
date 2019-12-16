@@ -94,7 +94,11 @@ func (immc *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
 		}, nil
 
 	case http.MethodPost:
-
+		if req.URL.Path != TestPath {
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
 		var result map[string]string
 		_ = json.NewDecoder(req.Body).Decode(&result)
 		immc.Result = result
@@ -368,7 +372,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
 			if test.expectedErrorType != nil && err == nil {
-				t.Errorf("Expected error but none was recieved")
+				t.Errorf("Expected error %v but none was recieved", test.expectedErrorType)
 			}
 
 			switch v := test.caller.(type) {
@@ -404,5 +408,204 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestHttpSecretStoreManager_SetValue(t *testing.T) {
+	tests := []struct {
+		name              string
+		path              string
+		secrets           map[string]string
+		expectedValues    map[string]string
+		expectError       bool
+		expectedErrorType error
+		retries           int
+		expectedDoCallNum int
+		caller            Caller
+	}{
+		{
+			name:              "Set One Secret",
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "Set Multiple Secrets",
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno", "two": "dos"},
+			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "Handle non-200 HTTP response",
+			path:              TestPath,
+			secrets:           map[string]string{"": "empty"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+			},
+		},
+		{
+			name:              "Set One Secret with unknown path",
+			path:              "/nonexistentpath",
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "URL Error",
+			path:              "bad path for URL",
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: &url.Error{},
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "Retry 10 times, 1st success",
+			retries:           10,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				Data: testData,
+			},
+		},
+		{
+			name:              "Retry 9 times, all HTTP status failures",
+			retries:           9,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			// expected is retries + 1
+			expectedDoCallNum: 10,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+			},
+		},
+		{
+			name:              "Retry 9 times, all catastrophic failure",
+			retries:           9,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 10,
+			caller: &ErrorMockCaller{
+				ReturnError: true,
+			},
+		},
+		{
+			name:              "Retry 9 times, last works",
+			retries:           9,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    map[string]string{"one": "uno"},
+			expectError:       false,
+			expectedDoCallNum: 10,
+			caller: &InMemoryMockCaller{
+				NErrorsBeforeSuccess: 9,
+				Data:                 testData,
+			},
+		},
+		{
+			name:              "Invalid retry num",
+			retries:           -1,
+			path:              TestPath,
+			secrets:           map[string]string{"one": "uno"},
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 0,
+			caller: &ErrorMockCaller{
+				ReturnError: true,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := SecretConfig{
+				Host:                    "localhost",
+				Port:                    8080,
+				Protocol:                "http",
+				Namespace:               TestNamespace,
+				AdditionalRetryAttempts: test.retries,
+			}
+			ssm := Client{
+				HttpConfig: cfgHTTP,
+				HttpCaller: test.caller,
+			}
+
+			err := ssm.StoreSecrets(test.path, test.secrets)
+			if test.expectedErrorType != nil && err == nil {
+				t.Errorf("Expected error %v but none was recieved", test.expectedErrorType)
+			}
+
+			switch v := test.caller.(type) {
+			case *ErrorMockCaller:
+				if test.expectedDoCallNum != v.DoCallCount {
+					t.Errorf("Expected %d ErrorMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
+				}
+			case *InMemoryMockCaller:
+				if test.expectedDoCallNum != v.DoCallCount {
+					t.Errorf("Expected %d InMemoryMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
+				}
+			}
+
+			if !test.expectError && err != nil {
+				t.Errorf("Unexpected error: %s", err.Error())
+			}
+
+			if test.expectError && test.expectedErrorType != nil && err != nil {
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
+			}
+
+			if !test.expectError && test.secrets != nil {
+				keys := make([]string, 0, len(test.secrets))
+				for k, _ := range test.secrets {
+					keys = append(keys, k)
+				}
+				actual, _ := ssm.GetSecrets(test.path, keys...)
+				for k, expected := range test.expectedValues {
+					if actual[k] != expected {
+						t.Errorf("After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
+
+					}
+				}
+			}
+		})
 	}
 }
