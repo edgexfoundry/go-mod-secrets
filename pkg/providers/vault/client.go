@@ -242,16 +242,15 @@ func (c Client) store(path string, secrets map[string]string) error {
 	if err != nil {
 		return err
 	}
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
-	}
-
 	defer func() {
 		if resp.Body != nil {
 			resp.Body.Close()
 		}
 	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
 
 	return nil
 }

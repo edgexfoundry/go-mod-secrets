@@ -152,23 +152,24 @@ func (c *InMemoryCacheListener) update() {
 		timer := c.timerFunc(time.Duration(c.backoffPattern[backoffIndex]) * time.Second)
 		select {
 		case <-timer.C:
-			{
+			// use anonymous function to implement a monitor around
+			// Getsecrets and update of cache
+			func() {
+				c.cacheMutex.Lock()
+				defer c.cacheMutex.Unlock()
 				secrets, err := c.secretClient.GetSecrets(c.path, c.keys...)
 				if err != nil {
 					c.errorChan <- err
 					errorCount++
-					continue
+					return
 				}
 
 				errorCount = 0
 				if c.cache == nil || !reflect.DeepEqual(secrets, c.cache) {
-					c.cacheMutex.Lock()
 					c.cache = secrets
-					c.cacheMutex.Unlock()
 					c.updaterChan <- secrets
 				}
-
-			}
+			}()
 		case <-c.stopChan:
 			c.runningStateMutex.Lock()
 			if !c.isRunning {

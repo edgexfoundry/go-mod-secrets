@@ -25,7 +25,7 @@ type SecretClient interface {
 	GetSecrets(path string, keys ...string) (map[string]string, error)
 
 	// StoreSecrets stores the secrets to a secret store.
-	// it sets the values requested at provide keys
+	// it sets the values requested at provided keys
 	// path specifies the type or location of the secrets to store
 	// secrets map specifies the "key": "value" pairs of secrets to store
 	StoreSecrets(path string, secrets map[string]string) error
