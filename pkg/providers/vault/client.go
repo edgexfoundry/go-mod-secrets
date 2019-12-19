@@ -15,6 +15,7 @@
 package vault
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -72,16 +73,12 @@ func (c Client) GetSecrets(path string, keys ...string) (map[string]string, erro
 		// do some retries
 		// note the limit is 1 + additional retry attempts, cause we always need
 		// to do the first try
-		for tryNum := 0; tryNum < 1+addRetryAttempts; tryNum++ {
-			data, err = c.getAllKeys(path)
-			if err == nil {
-				break
-			}
+		data, err = c.getAllKeys(path)
 
-			// TODO: this will be run again if we hit the limit, when ideally we
-			// wouldn't wait cause we hit the limit and failed, but this is in
-			// the error case, so it's low priority to fix
+		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
 			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
+
+			data, err = c.getAllKeys(path)
 		}
 
 		// since we finished the above loop, then check if the last iteration
@@ -189,4 +186,71 @@ func createHTTPClient(config SecretConfig) (Caller, error) {
 			},
 		},
 	}, nil
+}
+
+func (c Client) StoreSecrets(path string, secrets map[string]string) error {
+
+	var err error
+	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
+	switch {
+	case addRetryAttempts < 0:
+		err = pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
+	case addRetryAttempts == 0:
+		// no retries
+		err = c.store(path, secrets)
+	case addRetryAttempts > 0:
+		// do some retries
+		// note the limit is 1 + additional retry attempts, cause we always need
+		// to do the first try
+		err = c.store(path, secrets)
+
+		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
+			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
+
+			err = c.store(path, secrets)
+		}
+	}
+
+	return err
+}
+
+func (c Client) store(path string, secrets map[string]string) error {
+	if len(secrets) == 0 {
+		// nothing to store
+		return nil
+	}
+
+	url := c.HttpConfig.BuildURL() + path
+
+	payload, err := json.Marshal(secrets)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set(c.HttpConfig.Authentication.AuthType, c.HttpConfig.Authentication.AuthToken)
+
+	if c.HttpConfig.Namespace != "" {
+		req.Header.Set(NamespaceHeader, c.HttpConfig.Namespace)
+	}
+
+	resp, err := c.HttpCaller.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
+	return nil
 }
