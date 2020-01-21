@@ -20,3 +20,21 @@ import "net/http"
 type Caller interface {
 	Do(req *http.Request) (*http.Response, error)
 }
+
+// tokenExpiredCallback is the callback function to handle the case when the vault token has already expired
+type tokenExpiredCallback func(expiredToken string) (replacementToken string, retry bool)
+
+// loggingClient is the interface to do the logging
+type loggingClient interface {
+	// the logger.LoggingClient from EdgeX's go-mod-core-contracts
+	// actually statisfies this interface signature
+	// and Error, Trace, and SetLogLevel are not in this interface
+	// as they are not used or referred anywhere in the local usage
+
+	// Debug logs a message at the DEBUG severity level
+	Debug(msg string, args ...interface{})
+	// Info logs a message at the INFO severity level
+	Info(msg string, args ...interface{})
+	// Warn logs a message at the WARN severity level
+	Warn(msg string, args ...interface{})
+}

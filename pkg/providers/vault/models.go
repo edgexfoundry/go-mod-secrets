@@ -1,5 +1,4 @@
 /*******************************************************************************
- * Copyright 2019 Dell Inc.
  * Copyright 2020 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -15,8 +14,13 @@
 
 package vault
 
-const (
-	// NamespaceHeader specifies the header name to use when including Namespace information in a request.
-	NamespaceHeader = "X-Vault-Namespace"
-	AuthTypeHeader  = "X-Vault-Token"
-)
+type TokenLookupMetadata struct {
+	ExpireTime string `json:"expire_time"`
+	Period     int    `json:"period"` // in seconds
+	Renewable  bool   `json:"renewable"`
+	Ttl        int    `json:"ttl"` // in seconds
+}
+
+type TokenLookupResponse struct {
+	Data TokenLookupMetadata
+}
