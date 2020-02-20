@@ -22,8 +22,9 @@ import (
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
-	Host                    string
-	Port                    int
+	Host string
+	Port int
+	// Path is the base path to the secret's location in the secret store
 	Path                    string
 	Protocol                string
 	Namespace               string
@@ -36,8 +37,13 @@ type SecretConfig struct {
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
-func (c SecretConfig) BuildURL() (path string) {
-	return fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, c.Path)
+func (c SecretConfig) BuildURL(path string) (url string) {
+	return fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
+}
+
+// BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
+func (c SecretConfig) BuildSecretsPathURL() (path string) {
+	return c.BuildURL(c.Path)
 }
 
 // AuthenticationInfo contains authentication information to be used when communicating with an HTTP based provider

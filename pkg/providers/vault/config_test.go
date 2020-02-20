@@ -32,7 +32,7 @@ func TestBuildUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val := tt.cfg.BuildURL()
+			val := tt.cfg.BuildURL(tt.cfg.Path)
 			if val != tt.path {
 				t.Errorf("%s unexpected path %s", tt.name, val)
 			}
