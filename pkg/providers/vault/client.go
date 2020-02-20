@@ -148,7 +148,11 @@ func (c Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 
 func (c Client) getTokenLookupResponseData() (*TokenLookupResponse, error) {
 	// call Vault's token self lookup API
-	url := c.HttpConfig.BuildURL() + lookupSelfVaultAPI
+	url, err := c.HttpConfig.BuildURL(lookupSelfVaultAPI)
+	if err != nil {
+		return nil, err
+	}
+
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -185,7 +189,11 @@ func (c Client) getTokenLookupResponseData() (*TokenLookupResponse, error) {
 
 func (c Client) renewToken() error {
 	// call Vault's renew self API
-	url := c.HttpConfig.BuildURL() + renewSelfVaultAPI
+	url, err := c.HttpConfig.BuildURL(renewSelfVaultAPI)
+	if err != nil {
+		return err
+	}
+
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return err
@@ -210,8 +218,8 @@ func (c Client) renewToken() error {
 	return nil
 }
 
-// GetSecrets retrieves the secrets at the provided path that match the specified keys.
-func (c Client) GetSecrets(path string, keys ...string) (map[string]string, error) {
+// GetSecrets retrieves the secrets at the provided subpath that matches the specified keys.
+func (c Client) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
 	data := make(map[string]string)
 	var err error
 	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
@@ -220,7 +228,7 @@ func (c Client) GetSecrets(path string, keys ...string) (map[string]string, erro
 		return nil, pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
 	case addRetryAttempts == 0:
 		// no retries
-		data, err = c.getAllKeys(path)
+		data, err = c.getAllKeys(subPath)
 		if err != nil {
 			return nil, err
 		}
@@ -228,12 +236,12 @@ func (c Client) GetSecrets(path string, keys ...string) (map[string]string, erro
 		// do some retries
 		// note the limit is 1 + additional retry attempts, cause we always need
 		// to do the first try
-		data, err = c.getAllKeys(path)
+		data, err = c.getAllKeys(subPath)
 
 		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
 			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
 
-			data, err = c.getAllKeys(path)
+			data, err = c.getAllKeys(subPath)
 		}
 
 		// since we finished the above loop, then check if the last iteration
@@ -268,9 +276,13 @@ func (c Client) GetSecrets(path string, keys ...string) (map[string]string, erro
 	return values, nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided path.
-func (c Client) getAllKeys(path string) (map[string]string, error) {
-	url := c.HttpConfig.BuildURL() + path
+// getAllKeys obtains all the keys that reside at the provided subpath.
+func (c Client) getAllKeys(subPath string) (map[string]string, error) {
+	url, err := c.HttpConfig.BuildSecretsPathURL(subPath)
+	if err != nil {
+		return nil, err
+	}
+
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -300,7 +312,7 @@ func (c Client) getAllKeys(path string) (map[string]string, error) {
 
 	data, success := result["data"].(map[string]interface{})
 	if !success || len(data) <= 0 {
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secrets are present at the path: '%s'", path))
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secrets are present at the subpath: '%s'", subPath))
 	}
 
 	// Cast the secret values to strings
@@ -350,7 +362,8 @@ func createHTTPClient(config SecretConfig) (Caller, error) {
 	}, nil
 }
 
-func (c Client) StoreSecrets(path string, secrets map[string]string) error {
+// StoreSecrets stores the secrets at the provided subpath for the specified keys.
+func (c Client) StoreSecrets(subPath string, secrets map[string]string) error {
 
 	var err error
 	addRetryAttempts := c.HttpConfig.AdditionalRetryAttempts
@@ -359,30 +372,33 @@ func (c Client) StoreSecrets(path string, secrets map[string]string) error {
 		err = pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
 	case addRetryAttempts == 0:
 		// no retries
-		err = c.store(path, secrets)
+		err = c.store(subPath, secrets)
 	case addRetryAttempts > 0:
 		// do some retries
 		// note the limit is 1 + additional retry attempts, cause we always need
 		// to do the first try
-		err = c.store(path, secrets)
+		err = c.store(subPath, secrets)
 
 		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
 			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
 
-			err = c.store(path, secrets)
+			err = c.store(subPath, secrets)
 		}
 	}
 
 	return err
 }
 
-func (c Client) store(path string, secrets map[string]string) error {
+func (c Client) store(subPath string, secrets map[string]string) error {
 	if len(secrets) == 0 {
 		// nothing to store
 		return nil
 	}
 
-	url := c.HttpConfig.BuildURL() + path
+	url, err := c.HttpConfig.BuildSecretsPathURL(subPath)
+	if err != nil {
+		return err
+	}
 
 	payload, err := json.Marshal(secrets)
 	if err != nil {
