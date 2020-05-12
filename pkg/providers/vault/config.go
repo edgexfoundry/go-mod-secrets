@@ -17,13 +17,15 @@ package vault
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 )
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
-	Host                    string
-	Port                    int
+	Host string
+	Port int
+	// Path is the base path to the secret's location in the secret store
 	Path                    string
 	Protocol                string
 	Namespace               string
@@ -36,8 +38,21 @@ type SecretConfig struct {
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
-func (c SecretConfig) BuildURL() (path string) {
-	return fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, c.Path)
+func (c SecretConfig) BuildURL(path string) (spURL string, err error) {
+	rawurl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
+
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return "", err
+	}
+
+	return u.String(), nil
+}
+
+// BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
+// subPath is the location of the secrets in the secrets engine
+func (c SecretConfig) BuildSecretsPathURL(subPath string) (url string, err error) {
+	return c.BuildURL(c.Path + subPath)
 }
 
 // AuthenticationInfo contains authentication information to be used when communicating with an HTTP based provider

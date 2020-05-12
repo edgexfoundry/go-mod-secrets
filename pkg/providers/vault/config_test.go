@@ -16,6 +16,8 @@ package vault
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildUrl(t *testing.T) {
@@ -32,10 +34,27 @@ func TestBuildUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val := tt.cfg.BuildURL()
+			val, _ := tt.cfg.BuildURL(tt.cfg.Path)
 			if val != tt.path {
 				t.Errorf("%s unexpected path %s", tt.name, val)
 			}
+		})
+	}
+}
+
+func TestBuildUrlInvalidPath(t *testing.T) {
+	cfgWithInvalidPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "%$bar"}
+
+	tests := []struct {
+		name string
+		cfg  SecretConfig
+	}{
+		{"invalidPath", cfgWithInvalidPath},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tt.cfg.BuildURL(tt.cfg.Path)
+			assert.NotEqual(t, nil, err)
 		})
 	}
 }

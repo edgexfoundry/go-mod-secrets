@@ -19,14 +19,16 @@ package pkg
 // SecretClient provides a contract for storing and retrieving secrets from a secret store provider.
 type SecretClient interface {
 	// GetSecrets retrieves secrets from a secret store.
-	// path specifies the type or location of the secrets to retrieve.
+	// subPath specifies the type or location of the secrets to retrieve. If specified it is appended
+	// to the base path from the SecretConfig
 	// keys specifies the secrets which to retrieve. If no keys are provided then all the keys associated with the
 	// specified path will be returned.
-	GetSecrets(path string, keys ...string) (map[string]string, error)
+	GetSecrets(subPath string, keys ...string) (map[string]string, error)
 
 	// StoreSecrets stores the secrets to a secret store.
 	// it sets the values requested at provided keys
-	// path specifies the type or location of the secrets to store
+	// subPath specifies the type or location of the secrets to store. If specified it is appended
+	// to the base path from the SecretConfig
 	// secrets map specifies the "key": "value" pairs of secrets to store
-	StoreSecrets(path string, secrets map[string]string) error
+	StoreSecrets(subPath string, secrets map[string]string) error
 }
