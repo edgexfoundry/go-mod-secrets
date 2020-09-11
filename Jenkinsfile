@@ -15,6 +15,5 @@
 //
 
 edgeXBuildGoMod (
-    project: 'go-mod-secrets',
-    goVersion: '1.13'
+    project: 'go-mod-secrets'
 )
