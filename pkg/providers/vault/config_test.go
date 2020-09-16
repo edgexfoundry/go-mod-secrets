@@ -23,6 +23,7 @@ import (
 func TestBuildUrl(t *testing.T) {
 	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
 	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
+	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/api/v1/ping/"}
 
 	tests := []struct {
 		name string
@@ -31,6 +32,7 @@ func TestBuildUrl(t *testing.T) {
 	}{
 		{"validNoPath", cfgNoPath, "http://localhost:8080"},
 		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
+		{"validWithTrailingSlash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

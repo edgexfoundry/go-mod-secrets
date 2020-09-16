@@ -283,6 +283,8 @@ func (c Client) getAllKeys(subPath string) (map[string]string, error) {
 		return nil, err
 	}
 
+	c.lc.Debug(fmt.Sprintf("Using Secrets URL of `%s`", url))
+
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -399,6 +401,8 @@ func (c Client) store(subPath string, secrets map[string]string) error {
 	if err != nil {
 		return err
 	}
+
+	c.lc.Debug(fmt.Sprintf("Using Secrets URL of `%s`", url))
 
 	payload, err := json.Marshal(secrets)
 	if err != nil {
