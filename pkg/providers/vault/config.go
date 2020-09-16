@@ -18,6 +18,7 @@ package vault
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,11 @@ type SecretConfig struct {
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
 func (c SecretConfig) BuildURL(path string) (spURL string, err error) {
+	// Make sure there is not a trailing slash
+	if strings.HasSuffix(path, "/") {
+		path = path[:len(path)-1]
+	}
+
 	rawurl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
 
 	u, err := url.Parse(rawurl)

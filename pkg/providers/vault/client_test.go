@@ -32,6 +32,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
 )
 
@@ -401,6 +402,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			ssm := Client{
 				HttpConfig: cfgHTTP,
 				HttpCaller: test.caller,
+				lc:         logger.NewClientStdOut("unit-tests", false, "DEBUG"),
 			}
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
@@ -596,6 +598,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			ssm := Client{
 				HttpConfig: cfgHTTP,
 				HttpCaller: test.caller,
+				lc:         logger.NewClientStdOut("unit-tests", false, "DEBUG"),
 			}
 
 			err := ssm.StoreSecrets(test.path, test.secrets)
