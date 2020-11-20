@@ -19,14 +19,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-secrets/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/secrets"
 )
 
 // InMemoryCacheListener handles retrieving and storing secrets from a secret store
 // and provides updates based on a specified interval.
 type InMemoryCacheListener struct {
 	// secretClient retrieves secrets from a secret store.
-	secretClient pkg.SecretClient
+	secretClient secrets.SecretClient
 	// path contains the location of the secrets.
 	path string
 	// keys contains the keys for which to provide updates.
@@ -52,7 +52,7 @@ type InMemoryCacheListener struct {
 }
 
 // NewInMemoryCacheListener creates a new InMemoryCacheListener
-func NewInMemoryCacheListener(client pkg.SecretClient, updateChan chan map[string]string, errorChan chan error, backoffPattern []int, path string, keys []string) InMemoryCacheListener {
+func NewInMemoryCacheListener(client secrets.SecretClient, updateChan chan map[string]string, errorChan chan error, backoffPattern []int, path string, keys []string) InMemoryCacheListener {
 	return InMemoryCacheListener{
 		secretClient:      client,
 		path:              path,

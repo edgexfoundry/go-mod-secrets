@@ -12,9 +12,7 @@
  * the License.
  *******************************************************************************/
 
-// Package pkg generalized functions, interfaces, and structs which can be used for for different data-stores
-// implementations.
-package pkg
+package secrets
 
 // SecretClient provides a contract for storing and retrieving secrets from a secret store provider.
 type SecretClient interface {

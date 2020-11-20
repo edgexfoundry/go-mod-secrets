@@ -29,11 +29,11 @@ func (e ErrCaRootCert) Error() string {
 	return fmt.Sprintf("Unable to use the certificate '%s': %s", e.path, e.description)
 }
 
-type errHTTPResponse struct {
-	statusCode int
-	errMsg     string
+type ErrHTTPResponse struct {
+	StatusCode int
+	ErrMsg     string
 }
 
-func (err errHTTPResponse) Error() string {
-	return fmt.Sprintf("HTTP response with status code %d, message: %s", err.statusCode, err.errMsg)
+func (err ErrHTTPResponse) Error() string {
+	return fmt.Sprintf("HTTP response with status code %d, message: %s", err.StatusCode, err.ErrMsg)
 }

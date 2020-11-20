@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/secrets"
 )
 
 var Secrets = map[string]string{
@@ -86,7 +87,7 @@ func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string
 func TestGetKeys(t *testing.T) {
 	tests := []struct {
 		name              string
-		client            pkg.SecretClient
+		client            secrets.SecretClient
 		path              string
 		keys              []string
 		expectedResult    map[string]string
@@ -148,7 +149,7 @@ func TestGetKeys(t *testing.T) {
 func TestStoreSecrets(t *testing.T) {
 	tests := []struct {
 		name              string
-		client            pkg.SecretClient
+		client            secrets.SecretClient
 		path              string
 		secrets           map[string]string
 		expectedResult    map[string]string
