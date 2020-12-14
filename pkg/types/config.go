@@ -12,7 +12,6 @@
  * the License.
  *******************************************************************************/
 
-// Package vault defines structs that will be used frequently by clients which utilize HTTP transport.
 package types
 
 import (
