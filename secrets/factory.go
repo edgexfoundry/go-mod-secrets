@@ -1,6 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Dell Inc.
- * Copyright 2020 Intel Corp.
+ * Copyright 2020 Intel Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,15 +12,23 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package secrets
 
 import (
 	"context"
 	"sync"
 	"time"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/providers/vault"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/types"
 )
+
+func NewClient(ctx context.Context, config types.SecretConfig, lc logger.LoggingClient, callback pkg.TokenExpiredCallback) (SecretClient, error) {
+	// Currently only have a Vault implementation, so no need to have/check type.
+	return newSecretClientFactory().NewSecretClient(ctx, config, lc, callback)
+}
 
 // a map variable to handle the case of the same caller to have
 // multiple secret clients with potentially the same tokens while renewing token
@@ -36,10 +43,10 @@ type secretClientFactory struct {
 	mapMutex *sync.Mutex
 }
 
-// NewSecretClientFactory creates a new factory for manufacturing secret clients
-// the facotry is maintaining an internal map of Vault tokens and context cancel functions
+// newSecretClientFactory creates a new factory for manufacturing secret clients
+// the factory is maintaining an internal map of Vault tokens and context cancel functions
 // for gracefully terminating the background goroutine per token
-func NewSecretClientFactory() *secretClientFactory {
+func newSecretClientFactory() *secretClientFactory {
 	return &secretClientFactory{
 		tokenCancelFunc: make(vaultTokenToCancelFuncMap),
 		mapMutex:        &sync.Mutex{},
@@ -58,9 +65,9 @@ func NewSecretClientFactory() *secretClientFactory {
 // and getting a replacement token
 // it can be nil if the caller choose not to do that
 func (factory *secretClientFactory) NewSecretClient(ctx context.Context,
-	config SecretConfig,
-	lc loggingClient,
-	tokenExpiredCallback tokenExpiredCallback) (pkg.SecretClient, error) {
+	config types.SecretConfig,
+	lc logger.LoggingClient,
+	tokenExpiredCallback pkg.TokenExpiredCallback) (SecretClient, error) {
 	if ctx == nil {
 		return nil, pkg.NewErrSecretStore("background ctx is required and cannot be nil")
 	}
@@ -70,9 +77,9 @@ func (factory *secretClientFactory) NewSecretClient(ctx context.Context,
 		return nil, pkg.NewErrSecretStore("AuthToken is required in config")
 	}
 
-	httpClient, err := createHTTPClient(config)
+	httpClient, err := vault.CreateHTTPClient(config)
 	if err != nil {
-		return Client{}, err
+		return vault.Client{}, err
 	}
 
 	if config.RetryWaitPeriod != "" {
@@ -80,14 +87,10 @@ func (factory *secretClientFactory) NewSecretClient(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		config.retryWaitPeriodTime = retryTimeDuration
+		config.RetryWaitPeriodTime = retryTimeDuration
 	}
 
-	secretClient := Client{
-		HttpConfig: config,
-		HttpCaller: httpClient,
-		lc:         lc,
-	}
+	secretClient := vault.NewClient(config, httpClient, lc)
 
 	factory.mapMutex.Lock()
 	// if there is context already associated with the given token,
@@ -98,7 +101,7 @@ func (factory *secretClientFactory) NewSecretClient(ctx context.Context,
 	factory.mapMutex.Unlock()
 
 	cCtx, cancel := context.WithCancel(ctx)
-	if err = secretClient.refreshToken(cCtx, tokenExpiredCallback); err != nil {
+	if err = secretClient.RefreshToken(cCtx, tokenExpiredCallback); err != nil {
 		cancel()
 		factory.mapMutex.Lock()
 		delete(factory.tokenCancelFunc, tokenStr)

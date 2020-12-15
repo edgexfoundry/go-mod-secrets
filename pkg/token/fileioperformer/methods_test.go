@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -102,7 +102,7 @@ func isLinux() bool {
 
 type mockReadCloser struct{}
 
-func (rc *mockReadCloser) Read(p []byte) (n int, err error) {
+func (rc *mockReadCloser) Read(_ []byte) (n int, err error) {
 	return 0, nil
 }
 
@@ -112,6 +112,6 @@ func (rc *mockReadCloser) Close() error {
 
 type mockReader struct{}
 
-func (rc *mockReader) Read(p []byte) (n int, err error) {
+func (rc *mockReader) Read(_ []byte) (n int, err error) {
 	return 0, nil
 }

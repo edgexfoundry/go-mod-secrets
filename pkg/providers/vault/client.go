@@ -26,7 +26,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-secrets/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/types"
 )
 
 const (
@@ -34,18 +36,26 @@ const (
 	renewSelfVaultAPI  = "/v1/auth/token/renew-self"
 )
 
+func NewClient(config types.SecretConfig, caller pkg.Caller, lc logger.LoggingClient) Client {
+	return Client{
+		HttpConfig: config,
+		HttpCaller: caller,
+		lc:         lc,
+	}
+}
+
 // Client defines the behavior for interacting with the Vault REST secret key/value store via HTTP(S).
 type Client struct {
-	HttpConfig SecretConfig
-	HttpCaller Caller
+	HttpConfig types.SecretConfig
+	HttpCaller pkg.Caller
 
 	// internal member variables
-	lc      loggingClient
+	lc      logger.LoggingClient
 	context context.Context
 }
 
-func (c Client) refreshToken(ctx context.Context, tokenExpiredCallback tokenExpiredCallback) error {
-	tokenData, err := c.getTokenLookupResponseData()
+func (c Client) RefreshToken(ctx context.Context, tokenExpiredCallback pkg.TokenExpiredCallback) error {
+	tokenData, err := c.GetTokenLookupResponseData()
 
 	if err != nil {
 		return err
@@ -87,7 +97,7 @@ func (c Client) refreshToken(ctx context.Context, tokenExpiredCallback tokenExpi
 }
 
 func (c Client) doTokenRefreshPeriodically(renewInterval time.Duration,
-	tokenExpiredCallback tokenExpiredCallback) {
+	tokenExpiredCallback pkg.TokenExpiredCallback) {
 
 	ticker := time.NewTicker(renewInterval)
 	for {
@@ -129,7 +139,7 @@ func (c Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 					// note the limit is 1 + additional retry attempts, cause we always need
 					// to do the first try
 					for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-						time.Sleep(c.HttpConfig.retryWaitPeriodTime)
+						time.Sleep(c.HttpConfig.RetryWaitPeriodTime)
 
 						err = c.renewToken()
 					}
@@ -146,7 +156,7 @@ func (c Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 	}
 }
 
-func (c Client) getTokenLookupResponseData() (*TokenLookupResponse, error) {
+func (c Client) GetTokenLookupResponseData() (*TokenLookupResponse, error) {
 	// call Vault's token self lookup API
 	url, err := c.HttpConfig.BuildURL(lookupSelfVaultAPI)
 	if err != nil {
@@ -164,12 +174,14 @@ func (c Client) getTokenLookupResponseData() (*TokenLookupResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errHTTPResponse{
-			statusCode: resp.StatusCode,
-			errMsg:     "failed to lookup token",
+		return nil, ErrHTTPResponse{
+			StatusCode: resp.StatusCode,
+			ErrMsg:     "failed to lookup token",
 		}
 	}
 
@@ -205,12 +217,14 @@ func (c Client) renewToken() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return errHTTPResponse{
-			statusCode: resp.StatusCode,
-			errMsg:     "failed to renew token",
+		return ErrHTTPResponse{
+			StatusCode: resp.StatusCode,
+			ErrMsg:     "failed to renew token",
 		}
 	}
 
@@ -218,7 +232,7 @@ func (c Client) renewToken() error {
 	return nil
 }
 
-// GetSecrets retrieves the secrets at the provided subpath that matches the specified keys.
+// GetSecrets retrieves the secrets at the provided sub-path that matches the specified keys.
 func (c Client) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
 	data := make(map[string]string)
 	var err error
@@ -239,7 +253,7 @@ func (c Client) GetSecrets(subPath string, keys ...string) (map[string]string, e
 		data, err = c.getAllKeys(subPath)
 
 		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
+			time.Sleep(c.HttpConfig.RetryWaitPeriodTime)
 
 			data, err = c.getAllKeys(subPath)
 		}
@@ -276,7 +290,7 @@ func (c Client) GetSecrets(subPath string, keys ...string) (map[string]string, e
 	return values, nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided subpath.
+// getAllKeys obtains all the keys that reside at the provided sub-path.
 func (c Client) getAllKeys(subPath string) (map[string]string, error) {
 	url, err := c.HttpConfig.BuildSecretsPathURL(subPath)
 	if err != nil {
@@ -305,7 +319,10 @@ func (c Client) getAllKeys(subPath string) (map[string]string, error) {
 		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	var result map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
@@ -314,29 +331,29 @@ func (c Client) getAllKeys(subPath string) (map[string]string, error) {
 
 	data, success := result["data"].(map[string]interface{})
 	if !success || len(data) <= 0 {
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secrets are present at the subpath: '%s'", subPath))
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secretKeyValues are present at the subpath: '%s'", subPath))
 	}
 
 	// Cast the secret values to strings
-	secrets := make(map[string]string)
+	secretKeyValues := make(map[string]string)
 	for k, v := range data {
-		secrets[k] = v.(string)
+		secretKeyValues[k] = v.(string)
 	}
 
-	return secrets, nil
+	return secretKeyValues, nil
 }
 
 func isForbidden(err error) bool {
-	if httpRespErr, ok := err.(errHTTPResponse); ok {
-		return httpRespErr.statusCode == http.StatusForbidden
+	if httpRespErr, ok := err.(ErrHTTPResponse); ok {
+		return httpRespErr.StatusCode == http.StatusForbidden
 	}
 	return false
 }
 
-// createHTTPClient creates and configures an HTTP client which can be used to communicate with the underlying
+// CreateHTTPClient creates and configures an HTTP client which can be used to communicate with the underlying
 // secret-store based on the SecretConfig.
 // Returns ErrCaRootCert is there is an error with the certificate.
-func createHTTPClient(config SecretConfig) (Caller, error) {
+func CreateHTTPClient(config types.SecretConfig) (pkg.Caller, error) {
 
 	if config.RootCaCertPath == "" {
 		return http.DefaultClient, nil
@@ -364,7 +381,7 @@ func createHTTPClient(config SecretConfig) (Caller, error) {
 	}, nil
 }
 
-// StoreSecrets stores the secrets at the provided subpath for the specified keys.
+// StoreSecrets stores the secrets at the provided sub-path for the specified keys.
 func (c Client) StoreSecrets(subPath string, secrets map[string]string) error {
 
 	var err error
@@ -382,7 +399,7 @@ func (c Client) StoreSecrets(subPath string, secrets map[string]string) error {
 		err = c.store(subPath, secrets)
 
 		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-			time.Sleep(c.HttpConfig.retryWaitPeriodTime)
+			time.Sleep(c.HttpConfig.RetryWaitPeriodTime)
 
 			err = c.store(subPath, secrets)
 		}
@@ -426,7 +443,7 @@ func (c Client) store(subPath string, secrets map[string]string) error {
 	}
 	defer func() {
 		if resp.Body != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 	}()
 

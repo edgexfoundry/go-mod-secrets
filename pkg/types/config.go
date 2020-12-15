@@ -12,8 +12,7 @@
  * the License.
  *******************************************************************************/
 
-// Package vault defines structs that will be used frequently by clients which utilize HTTP transport.
-package vault
+package types
 
 import (
 	"fmt"
@@ -35,7 +34,7 @@ type SecretConfig struct {
 	Authentication          AuthenticationInfo
 	AdditionalRetryAttempts int
 	RetryWaitPeriod         string
-	retryWaitPeriodTime     time.Duration
+	RetryWaitPeriodTime     time.Duration
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
@@ -45,9 +44,9 @@ func (c SecretConfig) BuildURL(path string) (spURL string, err error) {
 		path = path[:len(path)-1]
 	}
 
-	rawurl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
+	rawUrl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
 
-	u, err := url.Parse(rawurl)
+	u, err := url.Parse(rawUrl)
 	if err != nil {
 		return "", err
 	}

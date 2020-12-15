@@ -12,7 +12,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package types
 
 import (
 	"testing"
