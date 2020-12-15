@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/edgexfoundry/go-mod-secrets/pkg/token/fileioperformer/mocks"
+	"github.com/edgexfoundry/go-mod-secrets/pkg/token/fileioperformer/mocks"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ const expectedToken = "some-token-value"
 
 func TestReadCreateTokenJSON(t *testing.T) {
 	stringReader := strings.NewReader(createTokenJSON)
-	mockFileIoPerformer := &MockFileIoPerformer{}
+	mockFileIoPerformer := &mocks.FileIoPerformer{}
 	mockFileIoPerformer.On("OpenFileReader", "/dev/null", os.O_RDONLY, os.FileMode(0400)).Return(stringReader, nil)
 
 	p := NewAuthTokenLoader(mockFileIoPerformer)
@@ -45,7 +45,7 @@ func TestReadCreateTokenJSON(t *testing.T) {
 
 func TestReadVaultInitJSON(t *testing.T) {
 	stringReader := strings.NewReader(vaultInitJSON)
-	mockFileIoPerformer := &MockFileIoPerformer{}
+	mockFileIoPerformer := &mocks.FileIoPerformer{}
 	mockFileIoPerformer.On("OpenFileReader", "/dev/null", os.O_RDONLY, os.FileMode(0400)).Return(stringReader, nil)
 
 	p := NewAuthTokenLoader(mockFileIoPerformer)
@@ -57,7 +57,7 @@ func TestReadVaultInitJSON(t *testing.T) {
 
 func TestReadEmptyJSON(t *testing.T) {
 	stringReader := strings.NewReader("{}")
-	mockFileIoPerformer := &MockFileIoPerformer{}
+	mockFileIoPerformer := &mocks.FileIoPerformer{}
 	mockFileIoPerformer.On("OpenFileReader", "/dev/null", os.O_RDONLY, os.FileMode(0400)).Return(stringReader, nil)
 
 	p := NewAuthTokenLoader(mockFileIoPerformer)
@@ -69,7 +69,7 @@ func TestReadEmptyJSON(t *testing.T) {
 func TestFailOpen(t *testing.T) {
 	stringReader := strings.NewReader("")
 	myerr := errors.New("error")
-	mockFileIoPerformer := &MockFileIoPerformer{}
+	mockFileIoPerformer := &mocks.FileIoPerformer{}
 	mockFileIoPerformer.On("OpenFileReader", "/dev/null", os.O_RDONLY, os.FileMode(0400)).Return(stringReader, myerr)
 
 	p := NewAuthTokenLoader(mockFileIoPerformer)
