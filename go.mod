@@ -1,4 +1,4 @@
-module github.com/edgexfoundry/go-mod-secrets
+module github.com/edgexfoundry/go-mod-secrets/v2
 
 require (
 	github.com/edgexfoundry/go-mod-core-contracts v0.1.142

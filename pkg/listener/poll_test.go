@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-secrets/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/secrets"
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v2/secrets"
 )
 
 var Secrets = map[string]string{

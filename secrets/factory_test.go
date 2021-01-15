@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
-	"github.com/edgexfoundry/go-mod-secrets/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/pkg/providers/vault"
-	"github.com/edgexfoundry/go-mod-secrets/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/providers/vault"
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
 )
 
 func TestNewSecretClient(t *testing.T) {
