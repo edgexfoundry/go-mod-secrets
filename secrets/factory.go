@@ -19,10 +19,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/providers/vault"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 )
 
 func NewClient(ctx context.Context, config types.SecretConfig, lc logger.LoggingClient, callback pkg.TokenExpiredCallback) (SecretClient, error) {

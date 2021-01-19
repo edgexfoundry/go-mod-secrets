@@ -26,9 +26,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 )
 
 const (
