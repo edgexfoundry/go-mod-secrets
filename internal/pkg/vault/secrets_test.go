@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
- * Copyright 2020 Intel Corp.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,14 +17,22 @@ package vault
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"net"
+	"strconv"
+	"sync"
+	"time"
 
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
@@ -43,75 +51,328 @@ var testData = map[string]map[string]string{
 	},
 }
 
-type ErrorMockCaller struct {
-	StatusCode  int
-	ReturnError bool
-	DoCallCount int
+func TestNewSecretsClient(t *testing.T) {
+	authToken := "testToken"
+	var tokenDataMap sync.Map
+	tokenDataMap.Store(authToken, types.TokenMetadata{
+		Renewable: true,
+		Ttl:       10000,
+		Period:    10000,
+	})
+	server := GetMockTokenServer(&tokenDataMap)
+	defer server.Close()
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	host, port, _ := net.SplitHostPort(serverURL.Host)
+	portNum, _ := strconv.Atoi(port)
+
+	cfgHTTP := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, Authentication: types.AuthenticationInfo{AuthToken: authToken}}
+	cfgInvalidCertPath := types.SecretConfig{Protocol: "https", Host: host, Port: portNum, RootCaCertPath: "/non-existent-directory/rootCa.crt", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
+	cfgNamespace := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, Namespace: "database", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
+	cfgInvalidTime := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "not a real time spec", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
+	cfgValidTime := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "1s", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
+	cfgEmptyToken := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "1s"}
+	s := time.Second
+	bkgCtx := context.Background()
+
+	tests := []struct {
+		name         string
+		cfg          types.SecretConfig
+		expectErr    bool
+		expectedTime *time.Duration
+	}{
+		{"NewSecretClient HTTP configuration", cfgHTTP, false, nil},
+		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true, nil},
+		{"NewSecretClient with Namespace", cfgNamespace, false, nil},
+		{"NewSecretClient with invalid RetryWaitPeriod", cfgInvalidTime, true, nil},
+		{"NewSecretClient with valid RetryWaitPeriod", cfgValidTime, false, &s},
+		{"NewSecretClient with empty token", cfgEmptyToken, true, nil},
+	}
+	mockLogger := logger.NewMockClient()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			emptyTokenCallbackFunc := func(expiredToken string) (replacementToken string, retry bool) {
+				return "", false
+			}
+			client, err := NewSecretsClient(bkgCtx, tt.cfg, mockLogger, emptyTokenCallbackFunc)
+			if tt.expectErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			if tt.expectedTime != nil {
+				assert.Equal(t, *tt.expectedTime, client.Config.RetryWaitPeriodTime)
+			}
+		})
+	}
 }
 
-func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
-	emc.DoCallCount++
-	if emc.ReturnError {
-		return &http.Response{
-			StatusCode: emc.StatusCode,
-		}, TestConnError
+func TestMultipleTokenRenewals(t *testing.T) {
+	// run in parallel with other tests
+	t.Parallel()
+	// setup
+	tokenPeriod := 6
+	var tokenDataMap sync.Map
+	// ttl > half of period
+	tokenDataMap.Store("testToken1", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       tokenPeriod * 7 / 10,
+		Period:    tokenPeriod,
+	})
+	// ttl = half of period
+	tokenDataMap.Store("testToken2", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       tokenPeriod / 2,
+		Period:    tokenPeriod,
+	})
+	// ttl < half of period
+	tokenDataMap.Store("testToken3", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       tokenPeriod * 3 / 10,
+		Period:    tokenPeriod,
+	})
+	// to be expired token
+	tokenDataMap.Store("toToExpiredToken", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       1,
+		Period:    tokenPeriod,
+	})
+	// expired token
+	tokenDataMap.Store("expiredToken", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       0,
+		Period:    tokenPeriod,
+	})
+	// not renewable token
+	tokenDataMap.Store("unrenewableToken", types.TokenMetadata{
+		Renewable: false,
+		Ttl:       0,
+		Period:    tokenPeriod,
+	})
+
+	server := GetMockTokenServer(&tokenDataMap)
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoErrorf(t, err, "error on parsing server url %s: %s", server.URL, err)
+
+	host, port, _ := net.SplitHostPort(serverURL.Host)
+	portNum, _ := strconv.Atoi(port)
+
+	bkgCtx := context.Background()
+
+	mockLogger := logger.NewMockClient()
+	tests := []struct {
+		name                     string
+		authToken                string
+		retries                  int
+		tokenExpiredCallbackFunc pkg.TokenExpiredCallback
+		expectError              bool
+		expectedErrorType        error
+	}{
+		{
+			name:              "New secret client with testToken1, more than half of TTL remaining",
+			authToken:         "testToken1",
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "New secret client with the same first token again",
+			authToken:         "testToken1",
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "New secret client with testToken2, half of TTL remaining",
+			authToken:         "testToken2",
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "New secret client with testToken3, less than half of TTL remaining",
+			authToken:         "testToken3",
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:              "New secret client with expired token, no TTL remaining",
+			authToken:         "expiredToken",
+			expectError:       true,
+			expectedErrorType: ErrHTTPResponse{StatusCode: 403, ErrMsg: "forbidden"},
+		},
+		{
+			name:              "New secret client with expired token, no TTL remaining, 3 retries",
+			authToken:         "expiredToken",
+			retries:           3,
+			expectError:       true,
+			expectedErrorType: ErrHTTPResponse{StatusCode: 403, ErrMsg: "forbidden"},
+		},
+		{
+			name:              "New secret client with unauthenticated token",
+			authToken:         "invalidToken",
+			expectError:       true,
+			expectedErrorType: ErrHTTPResponse{StatusCode: 403, ErrMsg: "forbidden"},
+		},
+		{
+			name:              "New secret client with unrenewable token",
+			authToken:         "unrenewableToken",
+			expectError:       false,
+			expectedErrorType: nil,
+		},
+		{
+			name:      "New secret client with to be expired token, 3 retries, retry func",
+			authToken: "toToExpiredToken",
+			retries:   3,
+			tokenExpiredCallbackFunc: func(expiredToken string) (replacementToken string, retry bool) {
+				time.Sleep(1 * time.Second)
+				return "testToken1", true
+			},
+			expectError:       false,
+			expectedErrorType: nil,
+		},
 	}
 
-	return &http.Response{
-		StatusCode: emc.StatusCode,
-	}, nil
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := types.SecretConfig{
+				Host:                    host,
+				Port:                    portNum,
+				Protocol:                "http",
+				Authentication:          types.AuthenticationInfo{AuthToken: test.authToken},
+				AdditionalRetryAttempts: test.retries,
+			}
+
+			client, err := NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, test.tokenExpiredCallbackFunc)
+
+			if test.expectError {
+				require.Errorf(t, err, "Expected error %v but none was received", test.expectedErrorType)
+				if test.expectedErrorType != nil {
+					eet := reflect.TypeOf(test.expectedErrorType)
+					et := reflect.TypeOf(err)
+					require.Truef(t, et.AssignableTo(eet), "Expected error of type %v, but got an error of type %v", eet, et)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+
+			// look up the token data again after renewal
+			lookupTokenData, err := client.getTokenDetails()
+			if !test.expectError && err != nil {
+				t.Errorf("error on cfgAuthToken %s: %s", test.authToken, err)
+			}
+
+			if !test.expectError && lookupTokenData != nil && lookupTokenData.Renewable &&
+				lookupTokenData.Ttl < tokenPeriod/2 {
+				tokenData, _ := tokenDataMap.Load(test.authToken)
+				tokenTTL := tokenData.(types.TokenMetadata).Ttl
+				t.Errorf("failed to renew token with the token period %d: the current TTL %d and the old TTL: %d",
+					tokenPeriod, lookupTokenData.Ttl, tokenTTL)
+			}
+		})
+	}
+	// wait for some time to allow renewToken to be run if any
+	time.Sleep(7 * time.Second)
 }
 
-type InMemoryMockCaller struct {
-	Data                 map[string]map[string]string
-	Result               map[string]string
-	DoCallCount          int
-	nErrorsReturned      int
-	NErrorsBeforeSuccess int
+func TestMultipleClientsFailureCase(t *testing.T) {
+	// run in parallel with other tests
+	t.Parallel()
+	// setup
+	tokenPeriod := 6
+	var tokenDataMap sync.Map
+
+	// expired token
+	tokenDataMap.Store("expiredToken", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       0,
+		Period:    tokenPeriod,
+	})
+
+	server := GetMockTokenServer(&tokenDataMap)
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	host, port, _ := net.SplitHostPort(serverURL.Host)
+	portNum, _ := strconv.Atoi(port)
+
+	bkgCtx := context.Background()
+
+	mockLogger := logger.NewMockClient()
+	cfgHTTP := types.SecretConfig{
+		Host:           host,
+		Port:           portNum,
+		Protocol:       "http",
+		Authentication: types.AuthenticationInfo{AuthToken: "expiredToken"},
+	}
+
+	emptyTokenCallbackFunc := func(expiredToken string) (replacementToken string, retry bool) {
+		return "", false
+	}
+	_, err = NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, emptyTokenCallbackFunc)
+	// it will fail since the token is expired
+	assert.Error(t, err)
+
+	// create a second secret client with the same expired token
+	_, err = NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, emptyTokenCallbackFunc)
+	assert.Error(t, err)
+
+	// wait for some time to allow renewToken to be run if any
+	time.Sleep(2 * time.Second)
 }
 
-func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
-	caller.DoCallCount++
-	if caller.NErrorsBeforeSuccess != 0 {
-		if caller.nErrorsReturned != caller.NErrorsBeforeSuccess {
-			caller.nErrorsReturned++
-			return &http.Response{
-				StatusCode: 404,
-			}, nil
-		}
-	}
-	if req.Header.Get(NamespaceHeader) != TestNamespace {
-		return nil, errors.New("namespace header is expected but not present in request")
+func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
+	// run in parallel with other tests
+	t.Parallel()
+	// setup
+	tokenPeriod := 6
+	var tokenDataMap sync.Map
+
+	// ttl < half of period
+	tokenDataMap.Store("testToken3", types.TokenMetadata{
+		Renewable: true,
+		Ttl:       tokenPeriod * 3 / 10,
+		Period:    tokenPeriod,
+	})
+
+	server := GetMockTokenServer(&tokenDataMap)
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	host, port, _ := net.SplitHostPort(serverURL.Host)
+	portNum, _ := strconv.Atoi(port)
+
+	bkgCtx := context.Background()
+	mockLogger := logger.NewMockClient()
+	cfgHTTP := types.SecretConfig{
+		Host:           host,
+		Port:           portNum,
+		Protocol:       "http",
+		Authentication: types.AuthenticationInfo{AuthToken: "testToken3"},
 	}
 
-	switch req.Method {
-	case http.MethodGet:
-		if req.URL.Path != TestPath {
-			return &http.Response{
-				StatusCode: 404,
-			}, nil
-		}
-		r, _ := json.Marshal(caller.Data)
-		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
-			StatusCode: 200,
-		}, nil
-
-	case http.MethodPost:
-		if req.URL.Path != TestPath {
-			return &http.Response{
-				StatusCode: 404,
-			}, nil
-		}
-		var result map[string]string
-		_ = json.NewDecoder(req.Body).Decode(&result)
-		caller.Result = result
-		return &http.Response{
-			StatusCode: 200,
-		}, nil
-	default:
-		return nil, errors.New("unsupported HTTP method")
+	// number of clients to be created to run in go-routines
+	numOfClients := 100
+	for i := 0; i < numOfClients; i++ {
+		go func(ith int) {
+			emptyTokenCallbackFunc := func(expiredToken string) (replacementToken string, retry bool) {
+				return "", false
+			}
+			_, err = NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, emptyTokenCallbackFunc)
+			require.NoError(t, err)
+			time.Sleep(1 * time.Second)
+		}(i)
 	}
+
+	// wait for some time to allow renewToken to be run if any
+	time.Sleep(2 * time.Second)
 }
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
@@ -325,7 +586,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				AdditionalRetryAttempts: test.retries,
 			}
 			ssm := Client{
-				HttpConfig: cfgHTTP,
+				Config:     cfgHTTP,
 				HttpCaller: test.caller,
 				lc:         logger.NewMockClient(),
 			}
@@ -521,7 +782,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				AdditionalRetryAttempts: test.retries,
 			}
 			ssm := Client{
-				HttpConfig: cfgHTTP,
+				Config:     cfgHTTP,
 				HttpCaller: test.caller,
 				lc:         logger.NewMockClient(),
 			}
@@ -568,5 +829,76 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+type ErrorMockCaller struct {
+	StatusCode  int
+	ReturnError bool
+	DoCallCount int
+}
+
+func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
+	emc.DoCallCount++
+	if emc.ReturnError {
+		return &http.Response{
+			StatusCode: emc.StatusCode,
+		}, TestConnError
+	}
+
+	return &http.Response{
+		StatusCode: emc.StatusCode,
+	}, nil
+}
+
+type InMemoryMockCaller struct {
+	Data                 map[string]map[string]string
+	Result               map[string]string
+	DoCallCount          int
+	nErrorsReturned      int
+	NErrorsBeforeSuccess int
+}
+
+func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) {
+	caller.DoCallCount++
+	if caller.NErrorsBeforeSuccess != 0 {
+		if caller.nErrorsReturned != caller.NErrorsBeforeSuccess {
+			caller.nErrorsReturned++
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
+	}
+	if req.Header.Get(NamespaceHeader) != TestNamespace {
+		return nil, errors.New("namespace header is expected but not present in request")
+	}
+
+	switch req.Method {
+	case http.MethodGet:
+		if req.URL.Path != TestPath {
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
+		r, _ := json.Marshal(caller.Data)
+		return &http.Response{
+			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
+			StatusCode: 200,
+		}, nil
+
+	case http.MethodPost:
+		if req.URL.Path != TestPath {
+			return &http.Response{
+				StatusCode: 404,
+			}, nil
+		}
+		var result map[string]string
+		_ = json.NewDecoder(req.Body).Decode(&result)
+		caller.Result = result
+		return &http.Response{
+			StatusCode: 200,
+		}, nil
+	default:
+		return nil, errors.New("unsupported HTTP method")
 	}
 }

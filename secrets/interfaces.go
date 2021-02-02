@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,6 +14,10 @@
  *******************************************************************************/
 
 package secrets
+
+import (
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
+)
 
 // SecretClient provides a contract for storing and retrieving secrets from a secret store provider.
 type SecretClient interface {
@@ -29,4 +34,22 @@ type SecretClient interface {
 	// to the base path from the SecretConfig
 	// secrets map specifies the "key": "value" pairs of secrets to store
 	StoreSecrets(subPath string, secrets map[string]string) error
+}
+
+// SecretStoreClient provides a contract for managing a Secret Store from a secret store provider.
+type SecretStoreClient interface {
+	HealthCheck() (int, error)
+	Init(secretThreshold int, secretShares int) (types.InitResponse, error)
+	Unseal(keys []string, keysBase64 []string) error
+	InstallPolicy(token string, policyName string, policyDocument string) error
+	CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error)
+	EnableKVSecretEngine(token string, mountPoint string, kvVersion string) error
+	EnableConsulSecretEngine(token string, mountPoint string, defaultLeaseTTL string) error
+	RegenRootToken(keys []string) (string, error)
+	CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error)
+	ListTokenAccessors(token string) ([]string, error)
+	RevokeTokenAccessor(token string, accessor string) error
+	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
+	LookupToken(token string) (types.TokenMetadata, error)
+	RevokeToken(token string) error
 }

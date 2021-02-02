@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,8 +17,6 @@ package types
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildUrl(t *testing.T) {
@@ -30,33 +29,16 @@ func TestBuildUrl(t *testing.T) {
 		cfg  SecretConfig
 		path string
 	}{
-		{"validNoPath", cfgNoPath, "http://localhost:8080"},
-		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
-		{"validWithTrailingSlash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping"},
+		{"No Path", cfgNoPath, "http://localhost:8080"},
+		{"With Path", cfgWithPath, "http://localhost:8080/ping"},
+		{"With Trailing Slash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			val, _ := tt.cfg.BuildURL(tt.cfg.Path)
+			val := tt.cfg.BuildURL(tt.cfg.Path)
 			if val != tt.path {
 				t.Errorf("%s unexpected path %s", tt.name, val)
 			}
-		})
-	}
-}
-
-func TestBuildUrlInvalidPath(t *testing.T) {
-	cfgWithInvalidPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "%$bar"}
-
-	tests := []struct {
-		name string
-		cfg  SecretConfig
-	}{
-		{"invalidPath", cfgWithInvalidPath},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.cfg.BuildURL(tt.cfg.Path)
-			assert.NotEqual(t, nil, err)
 		})
 	}
 }

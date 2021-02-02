@@ -1,0 +1,407 @@
+/*******************************************************************************
+ * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+
+ *******************************************************************************/
+
+package vault
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	url2 "net/url"
+	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
+
+	"github.com/stretchr/testify/assert"
+)
+
+var expectedToken = "fake-token"
+
+func TestHealthCheck(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, HealthAPI, r.URL.EscapedPath())
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	code, err := client.HealthCheck()
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, code)
+}
+
+func TestHealthCheckUninitialized(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotImplemented)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	code, err := client.HealthCheck()
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotImplemented, code)
+}
+
+func TestHealthCheckSealed(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	code, err := client.HealthCheck()
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusServiceUnavailable, code)
+}
+
+func TestInit(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{
+			"keys": [
+			  "test-keys"
+			],
+			"keys_base64": [
+			  "test-keys-base64"
+			],
+			"root_token": "test-root-token"
+		}
+		`))
+		require.NoError(t, err)
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, InitAPI, r.URL.EscapedPath())
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	initResp, err := client.Init(1, 2)
+	require.NoError(t, err)
+	assert.NotNil(t, initResp)
+}
+
+func TestUnseal(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{"sealed": false, "t": 1, "n": 1, "progress": 100}`))
+		require.NoError(t, err)
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, UnsealAPI, r.URL.EscapedPath())
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	err := client.Unseal([]string{"test-keys"}, []string{"test-keys-base64"})
+	require.NoError(t, err)
+}
+
+func TestInstallPolicy(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+	expected := "policydoc"
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/sys/policies/acl/policy-name", r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		// Make sure the policy doc was base64 encoded in the json response object
+		body := make(map[string]interface{})
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, expected, body["policy"].(string))
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.InstallPolicy(expectedToken, "policy-name", expected)
+
+	// Assert
+	require.NoError(t, err)
+}
+
+func TestCheckSecretEngineInstalled(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, MountsAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{
+			"data": {
+				"cubbyhole/": {
+					"accessor": "cubbyhole_23676773",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "per-token private secret storage",
+					"local": true,
+					"options": null,
+					"seal_wrap": false,
+					"type": "cubbyhole"
+				},
+				"identity/": {
+					"accessor": "identity_11e23ad0",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "identity store",
+					"local": false,
+					"options": null,
+					"seal_wrap": false,
+					"type": "identity"
+				},
+				"secret/": {
+					"accessor": "kv_3ee7b0c0",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "key/value secret storage",
+					"local": false,
+					"options": {
+						"version": "1"
+					},
+					"seal_wrap": false,
+					"type": "kv"
+				},
+				"sys/": {
+					"accessor": "system_5e0c411d",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "system endpoints used for control, policy and debugging",
+					"local": false,
+					"options": null,
+					"seal_wrap": false,
+					"type": "system"
+				}
+			}	
+		  }`))
+		require.NoError(t, err)
+
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	installed, err := client.CheckSecretEngineInstalled(expectedToken, "secret/", "kv")
+
+	// Assert
+	require.NoError(t, err)
+	assert.True(t, installed)
+}
+
+func TestCheckSecretEngineNotInstalled(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, MountsAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{
+			"data": {
+				"cubbyhole/": {
+					"accessor": "cubbyhole_23676773",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "per-token private secret storage",
+					"local": true,
+					"options": null,
+					"seal_wrap": false,
+					"type": "cubbyhole"
+				},
+				"identity/": {
+					"accessor": "identity_11e23ad0",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "identity store",
+					"local": false,
+					"options": null,
+					"seal_wrap": false,
+					"type": "identity"
+				},
+				"kv/": {
+					"accessor": "kv_3ee7b0c0",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "key/value secret storage",
+					"local": false,
+					"options": {
+						"version": "1"
+					},
+					"seal_wrap": false,
+					"type": "kv"
+				},
+				"sys/": {
+					"accessor": "system_5e0c411d",
+					"config": {
+						"default_lease_ttl": 0,
+						"force_no_cache": false,
+						"max_lease_ttl": 0
+					},
+					"description": "system endpoints used for control, policy and debugging",
+					"local": false,
+					"options": null,
+					"seal_wrap": false,
+					"type": "system"
+				}
+			}	
+		  }`))
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	installed, err := client.CheckSecretEngineInstalled(expectedToken, "secret/", "kv")
+
+	// Assert
+	require.NoError(t, err)
+	assert.False(t, installed)
+}
+
+func TestEnableKVSecretEngine(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	expectedType := KeyValue
+	expectedVersion := "1"
+	expectedMountPoint := "secret"
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, MountsAPI+"/"+expectedMountPoint, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body EnableSecretsEngineRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, expectedType, body.Type)
+		require.Equal(t, expectedVersion, body.Options.Version)
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.EnableKVSecretEngine(expectedToken, expectedMountPoint+"/", expectedVersion)
+
+	// Assert
+	require.NoError(t, err)
+}
+
+func TestEnableConsulSecretEngine(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	expectedType := Consul
+	expectedTTL := "1h"
+	expectedMountPoint := "consul"
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, MountsAPI+"/"+expectedMountPoint, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body EnableSecretsEngineRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, expectedType, body.Type)
+		require.Equal(t, expectedTTL, body.Config.DefaultLeaseTTLDuration)
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.EnableConsulSecretEngine(expectedToken, expectedMountPoint+"/", expectedTTL)
+
+	// Assert
+	require.NoError(t, err)
+}
+
+func createClient(t *testing.T, url string, lc logger.LoggingClient) *Client {
+	urlDetails, err := url2.Parse(url)
+	require.NoError(t, err)
+	port, err := strconv.Atoi(urlDetails.Port())
+	require.NoError(t, err)
+
+	config := types.SecretConfig{
+		Type:            "vault",
+		Protocol:        urlDetails.Scheme,
+		Host:            urlDetails.Hostname(),
+		Port:            port,
+		RetryWaitPeriod: "1s",
+	}
+
+	client, err := NewClient(config, pkg.NewMockRequester().Insecure(), false, lc)
+	require.NoError(t, err)
+
+	return client
+}
