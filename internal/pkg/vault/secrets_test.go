@@ -501,7 +501,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			keys:              []string{"one"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: nil,
+			expectedErrorType: errors.New(""),
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -593,12 +593,10 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 
-				if test.expectedErrorType != nil {
-					eet := reflect.TypeOf(test.expectedErrorType)
-					aet := reflect.TypeOf(err)
-					if !aet.AssignableTo(eet) {
-						t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
-					}
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
 				}
 
 				return
@@ -694,7 +692,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: nil,
+			expectedErrorType: errors.New(""),
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -788,12 +786,10 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 
-				if test.expectedErrorType != nil {
-					eet := reflect.TypeOf(test.expectedErrorType)
-					aet := reflect.TypeOf(err)
-					if !aet.AssignableTo(eet) {
-						t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
-					}
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
 				}
 
 				return
