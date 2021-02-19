@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
- * Copyright 2020 Intel Corp.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,8 +15,25 @@
 
 package vault
 
-const (
-	// NamespaceHeader specifies the header name to use when including Namespace information in a request.
-	NamespaceHeader = "X-Vault-Namespace"
-	AuthTypeHeader  = "X-Vault-Token"
+import (
+	"fmt"
 )
+
+// ErrCaRootCert error when the provided CA Root certificate is invalid.
+type ErrCaRootCert struct {
+	path        string
+	description string
+}
+
+func (e ErrCaRootCert) Error() string {
+	return fmt.Sprintf("Unable to use the certificate '%s': %s", e.path, e.description)
+}
+
+type ErrHTTPResponse struct {
+	StatusCode int
+	ErrMsg     string
+}
+
+func (err ErrHTTPResponse) Error() string {
+	return fmt.Sprintf("HTTP response with status code %d, message: %s", err.StatusCode, err.ErrMsg)
+}

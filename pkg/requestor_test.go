@@ -1,5 +1,6 @@
 /*******************************************************************************
- * Copyright 2020 Intel Corp.
+ * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -10,17 +11,30 @@
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+
  *******************************************************************************/
 
-package vault
+package pkg
 
-type TokenLookupMetadata struct {
-	ExpireTime string `json:"expire_time"`
-	Period     int    `json:"period"` // in seconds
-	Renewable  bool   `json:"renewable"`
-	Ttl        int    `json:"ttl"` // in seconds
+import (
+	"strings"
+	"testing"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestInsecureRequestor(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	caller := NewRequester(mockLogger).Insecure()
+	assert.NotNil(t, caller)
 }
 
-type TokenLookupResponse struct {
-	Data TokenLookupMetadata
+func TestSecureRequestor(t *testing.T) {
+	mockLogger := logger.MockLogger{}
+
+	caller := NewRequester(mockLogger).WithTLS(strings.NewReader(""), "str")
+	assert.NotNil(t, caller)
 }

@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,46 +18,49 @@ package types
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildUrl(t *testing.T) {
 	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
 	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
 	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/api/v1/ping/"}
+	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", Path: ""}
+	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", Path: ""}
+	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", Path: "/api/v1/ping/"}
+	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", Path: "/api/v1/ping/"}
+	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", Path: "/api/v1/ping/"}
+	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", Path: ""}
 
 	tests := []struct {
-		name string
-		cfg  SecretConfig
-		path string
+		name        string
+		cfg         SecretConfig
+		path        string
+		expectError bool
 	}{
-		{"validNoPath", cfgNoPath, "http://localhost:8080"},
-		{"validWithPath", cfgWithPath, "http://localhost:8080/ping"},
-		{"validWithTrailingSlash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping"},
+		{"Valid - No Path", cfgNoPath, "http://localhost:8080", false},
+		{"Valid - With Path", cfgWithPath, "http://localhost:8080/ping", false},
+		{"Valid - With Trailing Slash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping", false},
+		{"Invalid - No Host", cfgWithNoHost, "", true},
+		{"Invalid - Invalid Host", cfgWithInvalidHost, "", true},
+		{"Invalid - unset Port", cfgWithUnsetPort, "", true},
+		{"Invalid - Invalid Port", cfgWithInvalidPort, "", true},
+		{"Invalid - No protocol", cfgWithNoProtocol, "", true},
+		{"Invalid - Invalid protocol", cfgWithInvalidProtocol, "", true},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			val, _ := tt.cfg.BuildURL(tt.cfg.Path)
-			if val != tt.path {
-				t.Errorf("%s unexpected path %s", tt.name, val)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			val, err := test.cfg.BuildURL(test.cfg.Path)
+			if test.expectError {
+				require.Error(t, err)
+				return
 			}
-		})
-	}
-}
 
-func TestBuildUrlInvalidPath(t *testing.T) {
-	cfgWithInvalidPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "%$bar"}
-
-	tests := []struct {
-		name string
-		cfg  SecretConfig
-	}{
-		{"invalidPath", cfgWithInvalidPath},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.cfg.BuildURL(tt.cfg.Path)
-			assert.NotEqual(t, nil, err)
+			require.NoError(t, err)
+			if val != test.path {
+				t.Errorf("%s unexpected path %s", test.name, val)
+			}
 		})
 	}
 }

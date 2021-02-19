@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
+ * Copyright 2021 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,6 +24,7 @@ import (
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
 type SecretConfig struct {
+	Type string
 	Host string
 	Port int
 	// Path is the base path to the secret's location in the secret store
@@ -38,25 +40,39 @@ type SecretConfig struct {
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
-func (c SecretConfig) BuildURL(path string) (spURL string, err error) {
+func (c SecretConfig) BuildURL(path string) (string, error) {
 	// Make sure there is not a trailing slash
 	if strings.HasSuffix(path, "/") {
 		path = path[:len(path)-1]
 	}
 
-	rawUrl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
-
-	u, err := url.Parse(rawUrl)
-	if err != nil {
-		return "", err
+	if len(c.Protocol) == 0 {
+		return "", fmt.Errorf("unable to build URL: Protocol not set. Please check configuration settings")
 	}
 
-	return u.String(), nil
+	if len(c.Host) == 0 {
+		return "", fmt.Errorf("unable to build URL: Host not set. Please check configuration settings")
+	}
+
+	if c.Port == 0 {
+		return "", fmt.Errorf("unable to build URL: Port not set. Please check configuration settings")
+	}
+
+	builtUrl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
+	_, err := url.Parse(builtUrl)
+	if err != nil {
+		return "", fmt.Errorf(
+			"URL '%s' built from settings is invalid: %s. Please check you configuration settings",
+			builtUrl,
+			err.Error())
+	}
+
+	return builtUrl, err
 }
 
 // BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
 // subPath is the location of the secrets in the secrets engine
-func (c SecretConfig) BuildSecretsPathURL(subPath string) (url string, err error) {
+func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
 	return c.BuildURL(c.Path + subPath)
 }
 
