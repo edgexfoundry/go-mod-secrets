@@ -41,18 +41,18 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 	case Vault:
 		return vault.NewSecretsClient(ctx, config, lc, callback)
 	default:
-		return nil, fmt.Errorf("invalid secret client type of '%s'", config.Type)
+		return nil, fmt.Errorf("invalid secrets client type of '%s'", config.Type)
 	}
 }
 
-// NewManagementClient creates a new instance of a SecretClient based on the passed in configuration.
-// The NewSecretStoreClient provide management functionality to manage the secret store.
+// NewSecretStoreClient creates a new instance of a SecretClient based on the passed in configuration.
+// The SecretStoreClient provides management functionality to manage the secret store.
 func NewSecretStoreClient(config types.SecretConfig, lc logger.LoggingClient, requester pkg.Caller) (SecretStoreClient, error) {
 	switch config.Type {
 	case Vault:
 		return vault.NewClient(config, requester, false, lc)
 
 	default:
-		return nil, fmt.Errorf("invalid secret managment client type of '%s'", config.Type)
+		return nil, fmt.Errorf("invalid secret store client type of '%s'", config.Type)
 	}
 }
