@@ -57,7 +57,10 @@ func (c *Client) doRequest(params RequestArgs) (int, error) {
 		params.BodyReader = bytes.NewReader(body)
 	}
 
-	targetUrl := c.Config.BuildSecretsPathURL(params.Path)
+	targetUrl, err := c.Config.BuildSecretsPathURL(params.Path)
+	if err != nil {
+		return 0, err
+	}
 
 	req, err := http.NewRequest(params.Method, targetUrl, params.BodyReader)
 	if err != nil {

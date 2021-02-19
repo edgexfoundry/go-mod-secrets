@@ -124,12 +124,16 @@ func (c *Client) rootTokenSubmitKey(key string, nonce string) (bool, string, err
 		ResponseObject:       response,
 	})
 
+	if err != nil {
+		return false, "", err
+	}
+
 	var encodedToken string
 	if response.Complete {
 		encodedToken = response.EncodedToken
 	}
 
-	return response.Complete, encodedToken, err
+	return response.Complete, encodedToken, nil
 }
 
 func (c *Client) rootTokenDecodeToken(encodedToken string, otp string) (string, error) {

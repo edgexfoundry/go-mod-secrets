@@ -51,7 +51,11 @@ func (c *Client) ListTokenAccessors(token string) ([]string, error) {
 		ResponseObject:       &response,
 	})
 
-	return response.Data.Keys, err
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Data.Keys, nil
 }
 
 func (c *Client) RevokeTokenAccessor(token string, accessor string) error {

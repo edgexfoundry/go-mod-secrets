@@ -90,21 +90,21 @@ func TestNewSecretsClient(t *testing.T) {
 		{"NewSecretClient with empty token", cfgEmptyToken, true, nil},
 	}
 	mockLogger := logger.NewMockClient()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 
 			emptyTokenCallbackFunc := func(expiredToken string) (replacementToken string, retry bool) {
 				return "", false
 			}
-			client, err := NewSecretsClient(bkgCtx, tt.cfg, mockLogger, emptyTokenCallbackFunc)
-			if tt.expectErr {
+			client, err := NewSecretsClient(bkgCtx, test.cfg, mockLogger, emptyTokenCallbackFunc)
+			if test.expectErr {
 				require.Error(t, err)
 				return
 			}
 
 			require.NoError(t, err)
-			if tt.expectedTime != nil {
-				assert.Equal(t, *tt.expectedTime, client.Config.RetryWaitPeriodTime)
+			if test.expectedTime != nil {
+				assert.Equal(t, *test.expectedTime, client.Config.RetryWaitPeriodTime)
 			}
 		})
 	}
@@ -261,11 +261,9 @@ func TestMultipleTokenRenewals(t *testing.T) {
 
 			// look up the token data again after renewal
 			lookupTokenData, err := client.getTokenDetails()
-			if !test.expectError && err != nil {
-				t.Errorf("error on cfgAuthToken %s: %s", test.authToken, err)
-			}
+			require.NoError(t, err)
 
-			if !test.expectError && lookupTokenData != nil && lookupTokenData.Renewable &&
+			if lookupTokenData != nil && lookupTokenData.Renewable &&
 				lookupTokenData.Ttl < tokenPeriod/2 {
 				tokenData, _ := tokenDataMap.Load(test.authToken)
 				tokenTTL := tokenData.(types.TokenMetadata).Ttl
@@ -503,7 +501,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			keys:              []string{"one"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: &url.Error{},
+			expectedErrorType: nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -592,43 +590,40 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			}
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
-			if test.expectedErrorType != nil && err == nil {
-				t.Errorf("Expected error %v but none was received", test.expectedErrorType)
+			if test.expectError {
+				require.Error(t, err)
+
+				if test.expectedErrorType != nil {
+					eet := reflect.TypeOf(test.expectedErrorType)
+					aet := reflect.TypeOf(err)
+					if !aet.AssignableTo(eet) {
+						t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+					}
+				}
+
+				return
 			}
 
+			var mockType string
+			var callCount int
 			switch v := test.caller.(type) {
 			case *ErrorMockCaller:
-				if test.expectedDoCallNum != v.DoCallCount {
-					t.Errorf("Expected %d ErrorMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
-				}
+				mockType = "ErrorMockCaller"
+				callCount = v.DoCallCount
 			case *InMemoryMockCaller:
-				if test.expectedDoCallNum != v.DoCallCount {
-					t.Errorf("Expected %d InMemoryMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
-				}
+				mockType = "InMemoryMockCaller"
+				callCount = v.DoCallCount
 			}
 
-			if !test.expectError && err != nil {
-				t.Errorf("Unexpected error: %s", err.Error())
-			}
+			require.Equalf(t, test.expectedDoCallNum, callCount,
+				"Expected %d %s.Do calls, got %d", mockType, test.expectedDoCallNum, callCount)
 
-			if test.expectError && test.expectedErrorType != nil {
-				eet := reflect.TypeOf(test.expectedErrorType)
-				aet := reflect.TypeOf(err)
-				if !aet.AssignableTo(eet) {
-					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
-				}
-			}
-
-			if !test.expectError {
-				for k, expected := range test.expectedValues {
-					if actual[k] != expected {
-						t.Errorf("Expected value '%s', but got '%s'", expected, actual[k])
-
-					}
+			for k, expected := range test.expectedValues {
+				if actual[k] != expected {
+					assert.Equalf(t, expected, actual[k], "Expected value '%s', but got '%s'", expected, actual[k])
 				}
 			}
 		})
-
 	}
 }
 
@@ -699,7 +694,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: &url.Error{},
+			expectedErrorType: nil,
 			caller: &InMemoryMockCaller{
 				Data: testData,
 			},
@@ -772,6 +767,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
@@ -788,45 +784,44 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 			}
 
 			err := ssm.StoreSecrets(test.path, test.secrets)
-			if test.expectedErrorType != nil && err == nil {
-				t.Errorf("Expected error %v but none was received", test.expectedErrorType)
-			}
 
-			switch v := test.caller.(type) {
-			case *ErrorMockCaller:
-				if test.expectedDoCallNum != v.DoCallCount {
-					t.Errorf("Expected %d ErrorMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
-				}
-			case *InMemoryMockCaller:
-				if test.expectedDoCallNum != v.DoCallCount {
-					t.Errorf("Expected %d InMemoryMockCaller.Do calls, got %d", test.expectedDoCallNum, v.DoCallCount)
-				}
-			}
+			if test.expectError {
+				require.Error(t, err)
 
-			if !test.expectError && err != nil {
-				t.Errorf("Unexpected error: %s", err.Error())
-			}
-
-			if test.expectError && test.expectedErrorType != nil && err != nil {
-				eet := reflect.TypeOf(test.expectedErrorType)
-				aet := reflect.TypeOf(err)
-				if !aet.AssignableTo(eet) {
-					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
-				}
-			}
-
-			if !test.expectError && test.secrets != nil {
-				keys := make([]string, 0, len(test.secrets))
-				for k := range test.secrets {
-					keys = append(keys, k)
-				}
-				actual, _ := ssm.GetSecrets(test.path, keys...)
-				for k, expected := range test.expectedValues {
-					if actual[k] != expected {
-						t.Errorf("After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
-
+				if test.expectedErrorType != nil {
+					eet := reflect.TypeOf(test.expectedErrorType)
+					aet := reflect.TypeOf(err)
+					if !aet.AssignableTo(eet) {
+						t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
 					}
 				}
+
+				return
+			}
+
+			var mockType string
+			var callCount int
+			switch v := test.caller.(type) {
+			case *ErrorMockCaller:
+				mockType = "ErrorMockCaller"
+				callCount = v.DoCallCount
+			case *InMemoryMockCaller:
+				mockType = "InMemoryMockCaller"
+				callCount = v.DoCallCount
+			}
+
+			require.Equalf(t, test.expectedDoCallNum, callCount,
+				"Expected %d %s.Do calls, got %d", mockType, test.expectedDoCallNum, callCount)
+
+			keys := make([]string, 0, len(test.secrets))
+			for k := range test.secrets {
+				keys = append(keys, k)
+			}
+
+			actual, _ := ssm.GetSecrets(test.path, keys...)
+			for k, expected := range test.expectedValues {
+				assert.Equalf(t, expected, actual[k],
+					"After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
 			}
 		})
 	}

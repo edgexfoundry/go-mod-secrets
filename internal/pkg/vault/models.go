@@ -101,7 +101,7 @@ type SecretsEngineOptions struct {
 
 // SecretsEngineConfig is config for /v1/sys/mounts
 type SecretsEngineConfig struct {
-	DefaultLeaseTTLDuration string
+	DefaultLeaseTTLDuration string `json:"default_lease_ttl"`
 }
 
 // EnableSecretsEngineRequest is the POST request to /v1/sys/mounts

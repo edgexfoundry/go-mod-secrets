@@ -36,14 +36,12 @@ func (c *Client) HealthCheck() (int, error) {
 		ResponseObject:       nil,
 	})
 
-	// Heath check returns 5xx codes when unhealthy;
-	// return error object only if we don't get numeric code back
-	if code == 0 {
-		return 0, err
+	// If code is 0 there was a more serious error that prevented request for executing
+	if code != 0 {
+		c.lc.Infof("Vault health check HTTP status: StatusCode: %d", code)
 	}
 
-	c.lc.Infof("vault health check HTTP status: StatusCode: %d", code)
-	return code, nil
+	return code, err
 }
 
 func (c *Client) Init(secretThreshold int, secretShares int) (types.InitResponse, error) {
@@ -139,7 +137,7 @@ func (c *Client) EnableKVSecretEngine(token string, mountPoint string, kvVersion
 		Path:                 urlPath,
 		JSONObject:           parameters,
 		BodyReader:           nil,
-		OperationDescription: "update mounts",
+		OperationDescription: "update mounts for KV",
 		ExpectedStatusCode:   http.StatusNoContent,
 		ResponseObject:       nil,
 	})
@@ -180,14 +178,18 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 		Path:                 MountsAPI,
 		JSONObject:           nil,
 		BodyReader:           nil,
-		OperationDescription: "query mounts for Consul",
+		OperationDescription: "query mounts for" + engine,
 		ExpectedStatusCode:   http.StatusOK,
 		ResponseObject:       &response,
 	})
+
+	if err != nil {
+		return false, err
+	}
 
 	if mountData := response.Data[mountPoint]; mountData.Type == engine {
 		return true, nil
 	}
 
-	return false, err
+	return false, nil
 }

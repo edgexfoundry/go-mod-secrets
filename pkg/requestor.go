@@ -30,6 +30,8 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/token/fileioperformer"
 )
 
+const httpClientTimeoutDuration = 10 * time.Second
+
 type HTTPSRequester interface {
 	Insecure() Caller
 	WithTLS(io.Reader, string) Caller
@@ -47,7 +49,7 @@ func (r *fluentRequester) Insecure() Caller {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	return &http.Client{Timeout: 10 * time.Second, Transport: tr}
+	return &http.Client{Timeout: httpClientTimeoutDuration, Transport: tr}
 }
 
 func (r *fluentRequester) WithTLS(caReader io.Reader, serverName string) Caller {
@@ -68,9 +70,9 @@ func (r *fluentRequester) WithTLS(caReader io.Reader, serverName string) Caller 
 			InsecureSkipVerify: false,
 			ServerName:         serverName,
 		},
-		TLSHandshakeTimeout: 10 * time.Second,
+		TLSHandshakeTimeout: httpClientTimeoutDuration,
 	}
-	return &http.Client{Timeout: 10 * time.Second, Transport: tr}
+	return &http.Client{Timeout: httpClientTimeoutDuration, Transport: tr}
 }
 
 type mockRequester struct {
@@ -84,5 +86,5 @@ func (r *mockRequester) Insecure() Caller {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	return &http.Client{Timeout: 10 * time.Second, Transport: tr}
+	return &http.Client{Timeout: httpClientTimeoutDuration, Transport: tr}
 }

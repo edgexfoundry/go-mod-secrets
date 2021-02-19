@@ -64,7 +64,7 @@ func TestHealthCheckUninitialized(t *testing.T) {
 	client := createClient(t, ts.URL, mockLogger)
 
 	code, err := client.HealthCheck()
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.Equal(t, http.StatusNotImplemented, code)
 }
 
@@ -79,7 +79,7 @@ func TestHealthCheckSealed(t *testing.T) {
 	client := createClient(t, ts.URL, mockLogger)
 
 	code, err := client.HealthCheck()
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.Equal(t, http.StatusServiceUnavailable, code)
 }
 
@@ -210,6 +210,21 @@ func TestCheckSecretEngineInstalled(t *testing.T) {
 					"seal_wrap": false,
 					"type": "kv"
 				},
+				"consul/": {
+					"accessor": "consul_cb2f6638",
+					"config": {
+					  "default_lease_ttl": 0,
+					  "force_no_cache": false,
+					  "max_lease_ttl": 0
+					},
+					"description": "consul secret storage",
+					"external_entropy_access": false,
+					"local": false,
+					"options": {},
+					"seal_wrap": false,
+					"type": "consul",
+					"uuid": "512886f9-61e1-d662-dd1b-d583f20e1875"
+				},
 				"sys/": {
 					"accessor": "system_5e0c411d",
 					"config": {
@@ -232,12 +247,25 @@ func TestCheckSecretEngineInstalled(t *testing.T) {
 
 	client := createClient(t, ts.URL, mockLogger)
 
-	// Act
-	installed, err := client.CheckSecretEngineInstalled(expectedToken, "secret/", "kv")
+	tests := []struct {
+		name       string
+		mountPath  string
+		engineType string
+	}{
+		{"kv v1 secret storage installed", "secret/", KeyValue},
+		{"consul secret storage installed", "consul/", Consul},
+	}
 
-	// Assert
-	require.NoError(t, err)
-	assert.True(t, installed)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Act
+			installed, err := client.CheckSecretEngineInstalled("fake-token", test.mountPath, test.engineType)
+
+			// Assert
+			require.NoError(t, err)
+			require.True(t, installed)
+		})
+	}
 }
 
 func TestCheckSecretEngineNotInstalled(t *testing.T) {
@@ -314,12 +342,25 @@ func TestCheckSecretEngineNotInstalled(t *testing.T) {
 
 	client := createClient(t, ts.URL, mockLogger)
 
-	// Act
-	installed, err := client.CheckSecretEngineInstalled(expectedToken, "secret/", "kv")
+	tests := []struct {
+		name       string
+		mountPath  string
+		engineType string
+	}{
+		{"kv v1 secret storage not installed", "secret/", KeyValue},
+		{"consul secret storage not installed", "consul/", Consul},
+	}
 
-	// Assert
-	require.NoError(t, err)
-	assert.False(t, installed)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Act
+			installed, err := client.CheckSecretEngineInstalled("fake-token", test.mountPath, test.engineType)
+
+			// Assert
+			require.NoError(t, err)
+			require.False(t, installed)
+		})
+	}
 }
 
 func TestEnableKVSecretEngine(t *testing.T) {

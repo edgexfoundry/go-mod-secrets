@@ -170,7 +170,10 @@ func (c *Client) StoreSecrets(subPath string, secrets map[string]string) error {
 
 func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
 	// call Vault's token self lookup API
-	url := c.Config.BuildURL(lookupSelfVaultAPI)
+	url, err := c.Config.BuildURL(lookupSelfVaultAPI)
+	if err != nil {
+		return nil, err
+	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -312,8 +315,10 @@ func (c *Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 
 func (c *Client) renewToken() error {
 	// call Vault's renew self API
-	url := c.Config.BuildURL(renewSelfVaultAPI)
-
+	url, err := c.Config.BuildURL(renewSelfVaultAPI)
+	if err != nil {
+		return err
+	}
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return err
@@ -342,7 +347,11 @@ func (c *Client) renewToken() error {
 
 // getAllKeys obtains all the keys that reside at the provided sub-path.
 func (c *Client) getAllKeys(subPath string) (map[string]string, error) {
-	url := c.Config.BuildSecretsPathURL(subPath)
+	url, err := c.Config.BuildSecretsPathURL(subPath)
+	if err != nil {
+		return nil, err
+	}
+
 	c.lc.Debug(fmt.Sprintf("Using Secrets URL of `%s`", url))
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -402,7 +411,10 @@ func (c *Client) store(subPath string, secrets map[string]string) error {
 		return nil
 	}
 
-	url := c.Config.BuildSecretsPathURL(subPath)
+	url, err := c.Config.BuildSecretsPathURL(subPath)
+	if err != nil {
+		return err
+	}
 
 	c.lc.Debug(fmt.Sprintf("Using Secrets URL of `%s`", url))
 
