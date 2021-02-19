@@ -69,10 +69,10 @@ func (c *Client) Init(secretThreshold int, secretShares int) (types.InitResponse
 	return response, err
 }
 
-func (c *Client) Unseal(keys []string, keysBase64 []string) error {
+func (c *Client) Unseal(keysBase64 []string) error {
 	c.lc.Infof("Vault unsealing Process. Applying key shares.")
 
-	secretShares := len(keys)
+	secretShares := len(keysBase64)
 
 	keyCounter := 1
 	for _, key := range keysBase64 {

@@ -125,7 +125,7 @@ func TestUnseal(t *testing.T) {
 
 	client := createClient(t, ts.URL, mockLogger)
 
-	err := client.Unseal([]string{"test-keys"}, []string{"test-keys-base64"})
+	err := client.Unseal([]string{"test-keys-base64"})
 	require.NoError(t, err)
 }
 

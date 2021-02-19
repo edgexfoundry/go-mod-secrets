@@ -40,7 +40,7 @@ type SecretClient interface {
 type SecretStoreClient interface {
 	HealthCheck() (int, error)
 	Init(secretThreshold int, secretShares int) (types.InitResponse, error)
-	Unseal(keys []string, keysBase64 []string) error
+	Unseal(keysBase64 []string) error
 	InstallPolicy(token string, policyName string, policyDocument string) error
 	CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error)
 	EnableKVSecretEngine(token string, mountPoint string, kvVersion string) error

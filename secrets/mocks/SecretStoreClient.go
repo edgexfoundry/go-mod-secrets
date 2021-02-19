@@ -255,13 +255,13 @@ func (_m *SecretStoreClient) RevokeTokenAccessor(token string, accessor string) 
 	return r0
 }
 
-// Unseal provides a mock function with given fields: keys, keysBase64
-func (_m *SecretStoreClient) Unseal(keys []string, keysBase64 []string) error {
-	ret := _m.Called(keys, keysBase64)
+// Unseal provides a mock function with given fields: keysBase64
+func (_m *SecretStoreClient) Unseal(keysBase64 []string) error {
+	ret := _m.Called(keysBase64)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]string, []string) error); ok {
-		r0 = rf(keys, keysBase64)
+	if rf, ok := ret.Get(0).(func([]string) error); ok {
+		r0 = rf(keysBase64)
 	} else {
 		r0 = ret.Error(0)
 	}
