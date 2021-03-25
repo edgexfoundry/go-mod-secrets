@@ -52,4 +52,13 @@ type SecretStoreClient interface {
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
 	LookupToken(token string) (types.TokenMetadata, error)
 	RevokeToken(token string) error
+
+	// GenerateRegistryToken generates a new registry token based on the given serviceKey
+	// it requires a secret store token with the permission to generate the registry token
+	// the registry token is like a bearer token and is used to access the information from the registry
+	// like service's configuration in key/value store of the registry
+	// the generated token is unique every time
+	// caller should persist or cache the generated registry token, at least per runtime cycle, to reduce the number of
+	// tokens stored in registry server side and the number of calls to this API
+	GenerateRegistryToken(token, serviceKey string) (string, error)
 }

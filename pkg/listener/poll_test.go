@@ -28,21 +28,32 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/v2/secrets"
 )
 
-var Secrets = map[string]string{
-	"one":   "uno",
-	"two":   "dos",
-	"three": "tres",
+const (
+	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
+	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
+	// change the variables state while another unrelated chunk of code may be affected by it.
+	testPath = "/data"
+)
+
+func newTestMockSecretClient() MockSecretClient {
+	secrets := getTestSecrets()
+	return MockSecretClient{secretStore: &secrets}
 }
 
-var TestPath = "/data"
-var TestClient = MockSecretClient{secretStore: &Secrets}
+func getTestSecrets() map[string]string {
+	return map[string]string{
+		"one":   "uno",
+		"two":   "dos",
+		"three": "tres",
+	}
+}
 
 type MockSecretClient struct {
 	secretStore *map[string]string
 }
 
 func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string]string, error) {
-	if path != TestPath {
+	if path != testPath {
 		return nil, pkg.NewErrSecretsNotFound(keys)
 	}
 
@@ -66,12 +77,12 @@ func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string
 }
 
 func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string) error {
-	if path != TestPath {
+	if path != testPath {
 		return pkg.NewErrSecretStore(fmt.Sprintf("incorrect path for storing secrets: %s", path))
 	}
 
 	// sanity check before store secrets
-	for key, _ := range secrets {
+	for key := range secrets {
 		// empty key is not allowed
 		if strings.TrimSpace(key) == "" {
 			return pkg.NewErrSecretStore("cannot store secrets with empty key")
@@ -91,6 +102,7 @@ func (mssm MockSecretClient) GetTokenDetails() (*types.TokenMetadata, error) {
 }
 
 func TestGetKeys(t *testing.T) {
+	testClient := newTestMockSecretClient()
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
@@ -102,8 +114,8 @@ func TestGetKeys(t *testing.T) {
 	}{
 		{
 			name:              "Get keys",
-			client:            TestClient,
-			path:              TestPath,
+			client:            testClient,
+			path:              testPath,
 			keys:              []string{"one", "two"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -111,7 +123,7 @@ func TestGetKeys(t *testing.T) {
 		},
 		{
 			name:              "Get keys from unknown path",
-			client:            TestClient,
+			client:            testClient,
 			path:              "/unknownpath",
 			keys:              []string{"one", "two"},
 			expectedResult:    nil,
@@ -153,6 +165,7 @@ func TestGetKeys(t *testing.T) {
 }
 
 func TestStoreSecrets(t *testing.T) {
+	testClient := newTestMockSecretClient()
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
@@ -164,8 +177,8 @@ func TestStoreSecrets(t *testing.T) {
 	}{
 		{
 			name:              "Store one secret",
-			client:            TestClient,
-			path:              TestPath,
+			client:            testClient,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedResult:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -173,8 +186,8 @@ func TestStoreSecrets(t *testing.T) {
 		},
 		{
 			name:              "Store secrets",
-			client:            TestClient,
-			path:              TestPath,
+			client:            testClient,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -182,7 +195,7 @@ func TestStoreSecrets(t *testing.T) {
 		},
 		{
 			name:              "Store secrets from unknown path",
-			client:            TestClient,
+			client:            testClient,
 			path:              "/unknownpath",
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    nil,
@@ -191,8 +204,8 @@ func TestStoreSecrets(t *testing.T) {
 		},
 		{
 			name:              "Store one invalid empty key of secret",
-			client:            TestClient,
-			path:              TestPath,
+			client:            testClient,
+			path:              testPath,
 			secrets:           map[string]string{"": "empty"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -235,7 +248,8 @@ func TestStoreSecrets(t *testing.T) {
 }
 
 func TestGetKeysError(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), []int{0}, TestPath, []string{"doesNotExist"})
+	testClient := newTestMockSecretClient()
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), []int{0}, testPath, []string{"doesNotExist"})
 	_, err := c.GetKeys()
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -251,12 +265,13 @@ func TestGetKeysError(t *testing.T) {
 }
 
 func TestErrorPropagation(t *testing.T) {
+	testClient := newTestMockSecretClient()
 	errChan := make(chan error)
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), errChan, []int{0}, TestPath, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), errChan, []int{0}, testPath, []string{"doesNotExist"})
 
 	err := c.Start()
 	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
+		t.Errorf("Unexpected error occurred: %s", err.Error())
 		return
 	}
 	timeout := time.NewTimer(500 * time.Millisecond)
@@ -269,7 +284,8 @@ func TestErrorPropagation(t *testing.T) {
 }
 
 func TestStopStateCheck(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
+	testClient := newTestMockSecretClient()
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
 	err := c.Stop()
 	if err == nil {
 		t.Errorf("Expected error for invalid state")
@@ -285,10 +301,11 @@ func TestStopStateCheck(t *testing.T) {
 }
 
 func TestStartStateCheck(t *testing.T) {
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
+	testClient := newTestMockSecretClient()
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
 	err := c.Start()
 	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
+		t.Errorf("Unexpected error occurred: %s", err.Error())
 		return
 	}
 
@@ -314,18 +331,19 @@ func TestNoUpdate(t *testing.T) {
 	// Run this test in parallel with with other tests that have a timeout.
 	t.Parallel()
 
+	testClient := newTestMockSecretClient()
 	errChan := make(chan error)
 	updateChan := make(chan map[string]string)
-	c := NewInMemoryCacheListener(TestClient, updateChan, errChan, []int{0}, TestPath, []string{"one", "two"})
+	c := NewInMemoryCacheListener(testClient, updateChan, errChan, []int{0}, testPath, []string{"one", "two"})
 	_, err := c.GetKeys()
 	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
+		t.Errorf("Unexpected error occurred: %s", err.Error())
 		return
 	}
 
 	err = c.Start()
 	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
+		t.Errorf("Unexpected error occurred: %s", err.Error())
 		return
 	}
 	timeout := time.NewTimer(3 * time.Second)
@@ -343,12 +361,13 @@ func TestBackoffPattern(t *testing.T) {
 	// Run this test in parallel with with other tests that have a timeout.
 	t.Parallel()
 
+	testClient := newTestMockSecretClient()
 	callCount := 0
 	backoffPattern := []int{1, 2, 3}
 	numOfTries := len(backoffPattern) + 1
 
 	completeChan := make(chan struct{})
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error, 10), backoffPattern, TestPath, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), backoffPattern, testPath, []string{"doesNotExist"})
 
 	// Warp the Timer constructor with some verification logic so we can validate that the underlying timer is being
 	// invoked with the correct intervals.
@@ -374,7 +393,7 @@ func TestBackoffPattern(t *testing.T) {
 
 	err := c.Start()
 	if err != nil {
-		t.Errorf("Unexpected error ocurred: %s", err.Error())
+		t.Errorf("Unexpected error occurred: %s", err.Error())
 		return
 	}
 
@@ -395,16 +414,18 @@ func TestStateConcurrency(t *testing.T) {
 	// Run this test in parallel with with other tests that may take longer to execute.
 	t.Parallel()
 
+	testClient := newTestMockSecretClient()
+
 	numOfRestarts := 1000
-	c := NewInMemoryCacheListener(TestClient, make(chan map[string]string), make(chan error), []int{0}, TestPath, []string{"one"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
 
 	// Create 2 go-routines which will restart the listener concurrently to test the thread-safety of the state
 	// modifications.
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go restart(c, numOfRestarts, &wg, t)
+	go restart(c, numOfRestarts, &wg)
 	wg.Add(1)
-	go restart(c, numOfRestarts, &wg, t)
+	go restart(c, numOfRestarts, &wg)
 	wg.Wait()
 }
 
@@ -412,7 +433,7 @@ func TestStateConcurrency(t *testing.T) {
 // This is a helper function used to aid in testing the state handling functionality. This function ignores errors
 // returned by calling any start, stop, or restart function since errors are expected to be returned to the caller
 // during an invalid state issue. This is expected to run in a go-routine.
-func restart(c InMemoryCacheListener, numOfRestarts int, wg *sync.WaitGroup, t *testing.T) {
+func restart(c InMemoryCacheListener, numOfRestarts int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := 0; i < numOfRestarts; i++ {
 		err := c.Start()

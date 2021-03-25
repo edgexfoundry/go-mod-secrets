@@ -16,11 +16,16 @@
 package vault
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
+	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
 )
 
@@ -192,4 +197,63 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 	}
 
 	return false, nil
+}
+
+// GenerateRegistryToken generates a new registry token using serviceKey as role name to
+// call secretstore's consul/creds API
+// the serviceKey is used in the part of secretstore's URL as role name and should be accessible to the API
+func (c *Client) GenerateRegistryToken(mgmtToken, serviceKey string) (string, error) {
+	if len(mgmtToken) == 0 {
+		return emptyToken, pkg.NewErrSecretStore("missing mgmt token for generating registry token")
+	}
+
+	trimmedSrvKey := strings.TrimSpace(serviceKey)
+	if len(trimmedSrvKey) == 0 {
+		return emptyToken, pkg.NewErrSecretStore("serviceKey cannot be empty for generating registry token")
+	}
+
+	credsURL, err := c.Config.BuildURL(fmt.Sprintf(GenerateConsulTokenAPI, trimmedSrvKey))
+	if err != nil {
+		return emptyToken, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, credsURL, http.NoBody)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	req.Header.Set(AuthTypeHeader, mgmtToken)
+
+	resp, err := c.HttpCaller.Do(req)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	tokenResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return emptyToken, ErrHTTPResponse{
+			StatusCode: resp.StatusCode,
+			ErrMsg:     fmt.Sprintf("failed to generate registry token using [%s]: %s", trimmedSrvKey, string(tokenResp)),
+		}
+	}
+
+	type TokenResp struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	var registryTokenResp TokenResp
+	if err := json.NewDecoder(bytes.NewReader(tokenResp)).Decode(&registryTokenResp); err != nil {
+		return emptyToken, err
+	}
+
+	return registryTokenResp.Data.Token, nil
 }
