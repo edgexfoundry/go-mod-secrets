@@ -85,8 +85,8 @@ func (_m *SecretStoreClient) EnableKVSecretEngine(token string, mountPoint strin
 	return r0
 }
 
-// GenerateRegistryToken provides a mock function with given fields: token, serviceKey
-func (_m *SecretStoreClient) GenerateRegistryToken(token string, serviceKey string) (string, error) {
+// GenerateConsulToken provides a mock function with given fields: token, serviceKey
+func (_m *SecretStoreClient) GenerateConsulToken(token string, serviceKey string) (string, error) {
 	ret := _m.Called(token, serviceKey)
 
 	var r0 string

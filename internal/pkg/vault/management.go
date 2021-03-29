@@ -199,17 +199,17 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 	return false, nil
 }
 
-// GenerateRegistryToken generates a new registry token using serviceKey as role name to
+// GenerateConsulToken generates a new Consul token using serviceKey as role name to
 // call secretstore's consul/creds API
 // the serviceKey is used in the part of secretstore's URL as role name and should be accessible to the API
-func (c *Client) GenerateRegistryToken(mgmtToken, serviceKey string) (string, error) {
+func (c *Client) GenerateConsulToken(mgmtToken, serviceKey string) (string, error) {
 	if len(mgmtToken) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("missing mgmt token for generating registry token")
+		return emptyToken, pkg.NewErrSecretStore("missing mgmt token for generating Consul token")
 	}
 
 	trimmedSrvKey := strings.TrimSpace(serviceKey)
 	if len(trimmedSrvKey) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("serviceKey cannot be empty for generating registry token")
+		return emptyToken, pkg.NewErrSecretStore("serviceKey cannot be empty for generating Consul token")
 	}
 
 	credsURL, err := c.Config.BuildURL(fmt.Sprintf(GenerateConsulTokenAPI, trimmedSrvKey))
@@ -241,7 +241,7 @@ func (c *Client) GenerateRegistryToken(mgmtToken, serviceKey string) (string, er
 	if resp.StatusCode != http.StatusOK {
 		return emptyToken, ErrHTTPResponse{
 			StatusCode: resp.StatusCode,
-			ErrMsg:     fmt.Sprintf("failed to generate registry token using [%s]: %s", trimmedSrvKey, string(tokenResp)),
+			ErrMsg:     fmt.Sprintf("failed to generate Consul token using [%s]: %s", trimmedSrvKey, string(tokenResp)),
 		}
 	}
 
@@ -250,10 +250,10 @@ func (c *Client) GenerateRegistryToken(mgmtToken, serviceKey string) (string, er
 			Token string `json:"token"`
 		} `json:"data"`
 	}
-	var registryTokenResp TokenResp
-	if err := json.NewDecoder(bytes.NewReader(tokenResp)).Decode(&registryTokenResp); err != nil {
+	var consulTokenResp TokenResp
+	if err := json.NewDecoder(bytes.NewReader(tokenResp)).Decode(&consulTokenResp); err != nil {
 		return emptyToken, err
 	}
 
-	return registryTokenResp.Data.Token, nil
+	return consulTokenResp.Data.Token, nil
 }

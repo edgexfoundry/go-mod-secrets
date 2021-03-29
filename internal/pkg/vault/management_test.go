@@ -433,7 +433,7 @@ func TestEnableConsulSecretEngine(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGenerateRegistryToken(t *testing.T) {
+func TestGenerateConsulToken(t *testing.T) {
 	okJsonData := `{"data":{"token":"token-1", "accessor":"xxxxx"}}`
 	mgmtToken := "mgmt-token"
 	tests := []struct {
@@ -470,7 +470,7 @@ func TestGenerateRegistryToken(t *testing.T) {
 				lc:         logger.NewMockClient(),
 			}
 
-			actual, err := secretstoreClient.GenerateRegistryToken(test.mgmtToken, test.serviceKey)
+			actual, err := secretstoreClient.GenerateConsulToken(test.mgmtToken, test.serviceKey)
 			if test.expectError {
 				require.Error(t, err)
 			} else {
