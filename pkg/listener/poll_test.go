@@ -416,7 +416,7 @@ func TestStateConcurrency(t *testing.T) {
 
 	testClient := newTestMockSecretClient()
 
-	numOfRestarts := 1000
+	numOfRestarts := 600
 	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
 
 	// Create 2 go-routines which will restart the listener concurrently to test the thread-safety of the state
