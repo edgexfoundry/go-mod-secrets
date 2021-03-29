@@ -52,4 +52,13 @@ type SecretStoreClient interface {
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
 	LookupToken(token string) (types.TokenMetadata, error)
 	RevokeToken(token string) error
+
+	// GenerateConsulToken generates a new Consul token based on the given serviceKey
+	// it requires a secret store token with the permission to generate a Consul token
+	// the Consul token is like a bearer token and is used to access the information from Consul
+	// like service's configuration in key/value store of Consul
+	// the generated token is unique every time
+	// caller should persist or cache the generated Consul token, at least per runtime cycle, to reduce the number of
+	// tokens stored in Consul server side and the number of calls to this API
+	GenerateConsulToken(token, serviceKey string) (string, error)
 }

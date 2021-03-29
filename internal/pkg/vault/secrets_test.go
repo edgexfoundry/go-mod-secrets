@@ -40,16 +40,13 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 )
 
-var TestPath = "/data"
-var TestConnError = pkg.NewErrSecretStore("testing conn error")
-var TestNamespace = "database"
-var testData = map[string]map[string]string{
-	"data": {
-		"one":   "uno",
-		"two":   "dos",
-		"three": "tres",
-	},
-}
+const (
+	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
+	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
+	// change the variables state while another unrelated chunk of code may be affected by it.
+	testPath      = "/data"
+	testNamespace = "database"
+)
 
 func TestNewSecretsClient(t *testing.T) {
 	authToken := "testToken"
@@ -359,14 +356,16 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 	// number of clients to be created to run in go-routines
 	numOfClients := 100
 	for i := 0; i < numOfClients; i++ {
-		go func(ith int) {
+		go func() {
 			emptyTokenCallbackFunc := func(expiredToken string) (replacementToken string, retry bool) {
 				return "", false
 			}
-			_, err = NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, emptyTokenCallbackFunc)
+			// use local version of err to avoid data race condition on err from func closure
+			// i.e., local version is thread-safe
+			client, err := NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, emptyTokenCallbackFunc)
 			require.NoError(t, err)
-			time.Sleep(1 * time.Second)
-		}(i)
+			require.NotNil(t, client)
+		}()
 	}
 
 	// wait for some time to allow renewToken to be run if any
@@ -374,6 +373,8 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 }
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
+	TestConnError := pkg.NewErrSecretStore("testing conn error")
+	testData := getTestSecretsData()
 	tests := []struct {
 		name              string
 		path              string
@@ -387,7 +388,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	}{
 		{
 			name:              "Get Key",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -399,7 +400,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get Keys",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -411,7 +412,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get all keys",
-			path:              TestPath,
+			path:              testPath,
 			keys:              nil,
 			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
 			expectError:       false,
@@ -423,7 +424,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get non-existent Key",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -435,7 +436,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get all non-existent Keys",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -447,7 +448,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get some non-existent Keys",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one", "Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -459,7 +460,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Handle HTTP error",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -472,7 +473,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -509,7 +510,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		{
 			name:              "Retry 10 times, 1st success",
 			retries:           10,
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -522,7 +523,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, all HTTP status failures",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
@@ -537,7 +538,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, all catastrophic failure",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
@@ -550,7 +551,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, last works",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -563,7 +564,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		{
 			name:              "Invalid retry num",
 			retries:           -1,
-			path:              TestPath,
+			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
@@ -580,7 +581,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				Host:                    "localhost",
 				Port:                    8080,
 				Protocol:                "http",
-				Namespace:               TestNamespace,
+				Namespace:               testNamespace,
 				AdditionalRetryAttempts: test.retries,
 			}
 			ssm := Client{
@@ -626,6 +627,8 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 }
 
 func TestHttpSecretStoreManager_SetValue(t *testing.T) {
+	TestConnError := pkg.NewErrSecretStore("testing conn error")
+	testData := getTestSecretsData()
 	tests := []struct {
 		name              string
 		path              string
@@ -639,7 +642,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 	}{
 		{
 			name:              "Set One Secret",
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -651,7 +654,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		},
 		{
 			name:              "Set Multiple Secrets",
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -663,7 +666,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"": "empty"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -700,7 +703,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		{
 			name:              "Retry 10 times, 1st success",
 			retries:           10,
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -713,7 +716,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, all HTTP status failures",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       true,
@@ -728,7 +731,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, all catastrophic failure",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -741,7 +744,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		{
 			name:              "Retry 9 times, last works",
 			retries:           9,
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -754,7 +757,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		{
 			name:              "Invalid retry num",
 			retries:           -1,
-			path:              TestPath,
+			path:              testPath,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -772,7 +775,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				Host:                    "localhost",
 				Port:                    8080,
 				Protocol:                "http",
-				Namespace:               TestNamespace,
+				Namespace:               testNamespace,
 				AdditionalRetryAttempts: test.retries,
 			}
 			ssm := Client{
@@ -814,12 +817,23 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				keys = append(keys, k)
 			}
 
-			actual, _ := ssm.GetSecrets(test.path, keys...)
+			actual, err := ssm.GetSecrets(test.path, keys...)
+			require.NoError(t, err)
 			for k, expected := range test.expectedValues {
 				assert.Equalf(t, expected, actual[k],
 					"After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
 			}
 		})
+	}
+}
+
+func getTestSecretsData() map[string]map[string]string {
+	return map[string]map[string]string{
+		"data": {
+			"one":   "uno",
+			"two":   "dos",
+			"three": "tres",
+		},
 	}
 }
 
@@ -834,7 +848,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 	if emc.ReturnError {
 		return &http.Response{
 			StatusCode: emc.StatusCode,
-		}, TestConnError
+		}, pkg.NewErrSecretStore("testing conn error")
 	}
 
 	return &http.Response{
@@ -860,13 +874,13 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			}, nil
 		}
 	}
-	if req.Header.Get(NamespaceHeader) != TestNamespace {
+	if req.Header.Get(NamespaceHeader) != testNamespace {
 		return nil, errors.New("namespace header is expected but not present in request")
 	}
 
 	switch req.Method {
 	case http.MethodGet:
-		if req.URL.Path != TestPath {
+		if req.URL.Path != testPath {
 			return &http.Response{
 				StatusCode: 404,
 			}, nil
@@ -878,7 +892,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		}, nil
 
 	case http.MethodPost:
-		if req.URL.Path != TestPath {
+		if req.URL.Path != testPath {
 			return &http.Response{
 				StatusCode: 404,
 			}, nil
