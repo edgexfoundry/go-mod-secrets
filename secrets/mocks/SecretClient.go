@@ -9,6 +9,27 @@ type SecretClient struct {
 	mock.Mock
 }
 
+// GenerateConsulToken provides a mock function with given fields: token, serviceKey
+func (_m *SecretClient) GenerateConsulToken(token string, serviceKey string) (string, error) {
+	ret := _m.Called(token, serviceKey)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string) string); ok {
+		r0 = rf(token, serviceKey)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(token, serviceKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSecrets provides a mock function with given fields: subPath, keys
 func (_m *SecretClient) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
 	_va := make([]interface{}, len(keys))
