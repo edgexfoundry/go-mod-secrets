@@ -24,6 +24,7 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
 )
 
+// GetMockTokenServer returns a stub http test server for dealing with token lookup-self and renew-self API calls
 func GetMockTokenServer(tokenDataMap *sync.Map) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		urlPath := req.URL.String()
@@ -34,7 +35,7 @@ func GetMockTokenServer(tokenDataMap *sync.Map) *httptest.Server {
 				rw.WriteHeader(403)
 				_, _ = rw.Write([]byte("permission denied"))
 			} else {
-				resp := sampleTokenLookup.(types.TokenMetadata)
+				resp := sampleTokenLookup.(TokenLookupResponse)
 				if ret, err := json.Marshal(resp); err != nil {
 					rw.WriteHeader(500)
 					_, _ = rw.Write([]byte(err.Error()))
@@ -50,18 +51,20 @@ func GetMockTokenServer(tokenDataMap *sync.Map) *httptest.Server {
 				rw.WriteHeader(403)
 				_, _ = rw.Write([]byte("permission denied"))
 			} else {
-				currentTTL := sampleTokenLookup.(types.TokenMetadata).Ttl
+				currentTTL := sampleTokenLookup.(TokenLookupResponse).Data.Ttl
 				if currentTTL <= 0 {
 					// already expired
 					rw.WriteHeader(403)
 					_, _ = rw.Write([]byte("permission denied"))
 				} else {
-					tokenPeriod := sampleTokenLookup.(types.TokenMetadata).Period
+					tokenPeriod := sampleTokenLookup.(TokenLookupResponse).Data.Period
 
-					tokenDataMap.Store(token, types.TokenMetadata{
-						Renewable: true,
-						Ttl:       tokenPeriod,
-						Period:    tokenPeriod,
+					tokenDataMap.Store(token, TokenLookupResponse{
+						Data: types.TokenMetadata{
+							Renewable: true,
+							Ttl:       tokenPeriod,
+							Period:    tokenPeriod,
+						},
 					})
 					rw.WriteHeader(200)
 					_, _ = rw.Write([]byte("token renewed"))

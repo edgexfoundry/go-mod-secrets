@@ -197,7 +197,8 @@ func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
 		}
 	}
 
-	result := types.TokenMetadata{}
+	// the returned JSON structure for token self-read is TokenLookupResponse
+	result := TokenLookupResponse{}
 	jsonDec := json.NewDecoder(resp.Body)
 	if jsonDec == nil {
 		return nil, pkg.NewErrSecretStore("failed to obtain json decoder")
@@ -208,7 +209,7 @@ func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
 		return nil, err
 	}
 
-	return &result, nil
+	return &result.Data, nil
 }
 
 func (c *Client) refreshToken(ctx context.Context, tokenExpiredCallback pkg.TokenExpiredCallback) error {
@@ -228,7 +229,7 @@ func (c *Client) refreshToken(ctx context.Context, tokenExpiredCallback pkg.Toke
 	tokenPeriod := time.Duration(tokenData.Period) * time.Second
 	renewInterval := tokenPeriod / 2
 	if renewInterval <= 0 {
-		// no renew
+		// cannot renew, as the renew interval is non-positive
 		c.lc.Warn("no token renewal since renewInterval is 0")
 		return nil
 	}
