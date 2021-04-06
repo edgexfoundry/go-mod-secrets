@@ -51,10 +51,12 @@ const (
 func TestNewSecretsClient(t *testing.T) {
 	authToken := "testToken"
 	var tokenDataMap sync.Map
-	tokenDataMap.Store(authToken, types.TokenMetadata{
-		Renewable: true,
-		Ttl:       10000,
-		Period:    10000,
+	tokenDataMap.Store(authToken, TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       10000,
+			Period:    10000,
+		},
 	})
 	server := GetMockTokenServer(&tokenDataMap)
 	defer server.Close()
@@ -114,40 +116,52 @@ func TestMultipleTokenRenewals(t *testing.T) {
 	tokenPeriod := 6
 	var tokenDataMap sync.Map
 	// ttl > half of period
-	tokenDataMap.Store("testToken1", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       tokenPeriod * 7 / 10,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("testToken1", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       tokenPeriod * 7 / 10,
+			Period:    tokenPeriod,
+		},
 	})
 	// ttl = half of period
-	tokenDataMap.Store("testToken2", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       tokenPeriod / 2,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("testToken2", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       tokenPeriod / 2,
+			Period:    tokenPeriod,
+		},
 	})
 	// ttl < half of period
-	tokenDataMap.Store("testToken3", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       tokenPeriod * 3 / 10,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("testToken3", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       tokenPeriod * 3 / 10,
+			Period:    tokenPeriod,
+		},
 	})
 	// to be expired token
-	tokenDataMap.Store("toToExpiredToken", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       1,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("toToExpiredToken", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       1,
+			Period:    tokenPeriod,
+		},
 	})
 	// expired token
-	tokenDataMap.Store("expiredToken", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       0,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("expiredToken", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       0,
+			Period:    tokenPeriod,
+		},
 	})
 	// not renewable token
-	tokenDataMap.Store("unrenewableToken", types.TokenMetadata{
-		Renewable: false,
-		Ttl:       0,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("unrenewableToken", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: false,
+			Ttl:       0,
+			Period:    tokenPeriod,
+		},
 	})
 
 	server := GetMockTokenServer(&tokenDataMap)
@@ -263,7 +277,7 @@ func TestMultipleTokenRenewals(t *testing.T) {
 			if lookupTokenData != nil && lookupTokenData.Renewable &&
 				lookupTokenData.Ttl < tokenPeriod/2 {
 				tokenData, _ := tokenDataMap.Load(test.authToken)
-				tokenTTL := tokenData.(types.TokenMetadata).Ttl
+				tokenTTL := tokenData.(TokenLookupResponse).Data.Ttl
 				t.Errorf("failed to renew token with the token period %d: the current TTL %d and the old TTL: %d",
 					tokenPeriod, lookupTokenData.Ttl, tokenTTL)
 			}
@@ -281,10 +295,12 @@ func TestMultipleClientsFailureCase(t *testing.T) {
 	var tokenDataMap sync.Map
 
 	// expired token
-	tokenDataMap.Store("expiredToken", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       0,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("expiredToken", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       0,
+			Period:    tokenPeriod,
+		},
 	})
 
 	server := GetMockTokenServer(&tokenDataMap)
@@ -329,10 +345,12 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 	var tokenDataMap sync.Map
 
 	// ttl < half of period
-	tokenDataMap.Store("testToken3", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       tokenPeriod * 3 / 10,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("testToken3", TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       tokenPeriod * 3 / 10,
+			Period:    tokenPeriod,
+		},
 	})
 
 	server := GetMockTokenServer(&tokenDataMap)

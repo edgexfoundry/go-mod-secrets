@@ -37,10 +37,12 @@ func TestNewSecretsClient(t *testing.T) {
 	tokenPeriod := 6
 	var tokenDataMap sync.Map
 	// ttl > half of period
-	tokenDataMap.Store("TestToken", types.TokenMetadata{
-		Renewable: true,
-		Ttl:       tokenPeriod * 7 / 10,
-		Period:    tokenPeriod,
+	tokenDataMap.Store("TestToken", vault.TokenLookupResponse{
+		Data: types.TokenMetadata{
+			Renewable: true,
+			Ttl:       tokenPeriod * 7 / 10,
+			Period:    tokenPeriod,
+		},
 	})
 
 	server := vault.GetMockTokenServer(&tokenDataMap)

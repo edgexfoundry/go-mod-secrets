@@ -26,7 +26,8 @@ type InitResponse struct {
 	RootToken     string   `json:"root_token,omitempty"`
 }
 
-// TokenMetadata has introspection data about a token
+// TokenMetadata has introspection data about a token and is the "data" sub-structure for token lookup,
+// i.e. TokenLookupResponse, and token self-lookup
 type TokenMetadata struct {
 	Accessor   string   `json:"accessor"`
 	ExpireTime string   `json:"expire_time"`
