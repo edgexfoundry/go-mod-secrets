@@ -204,7 +204,12 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 // the serviceKey is used in the part of secretstore's URL as role name and should be accessible to the API
 func (c *Client) GenerateConsulToken(mgmtToken, serviceKey string) (string, error) {
 	if len(mgmtToken) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("missing mgmt token for generating Consul token")
+		// If mgmtToken, assume using service's own token.
+		mgmtToken = c.Config.Authentication.AuthToken
+
+		if len(mgmtToken) == 0 {
+			return emptyToken, pkg.NewErrSecretStore("missing mgmt token for generating Consul token")
+		}
 	}
 
 	trimmedSrvKey := strings.TrimSpace(serviceKey)
