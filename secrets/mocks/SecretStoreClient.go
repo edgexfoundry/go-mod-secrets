@@ -85,27 +85,6 @@ func (_m *SecretStoreClient) EnableKVSecretEngine(token string, mountPoint strin
 	return r0
 }
 
-// GenerateConsulToken provides a mock function with given fields: token, serviceKey
-func (_m *SecretStoreClient) GenerateConsulToken(token string, serviceKey string) (string, error) {
-	ret := _m.Called(token, serviceKey)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(token, serviceKey)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(token, serviceKey)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // HealthCheck provides a mock function with given fields:
 func (_m *SecretStoreClient) HealthCheck() (int, error) {
 	ret := _m.Called()

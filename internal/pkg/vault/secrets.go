@@ -20,7 +20,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -168,6 +170,67 @@ func (c *Client) StoreSecrets(subPath string, secrets map[string]string) error {
 	return err
 }
 
+// GenerateConsulToken generates a new Consul token using serviceKey as role name to
+// call secretstore's consul/creds API
+// the serviceKey is used in the part of secretstore's URL as role name and should be accessible to the API
+func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
+	trimmedSrvKey := strings.TrimSpace(serviceKey)
+	if len(trimmedSrvKey) == 0 {
+		return emptyToken, pkg.NewErrSecretStore("serviceKey cannot be empty for generating Consul token")
+	}
+
+	if len(c.Config.Authentication.AuthToken) == 0 {
+		return emptyToken, pkg.NewErrSecretStore("secretestore token from config cannot be empty for generating Consul token")
+	}
+
+	credsURL, err := c.Config.BuildURL(fmt.Sprintf(GenerateConsulTokenAPI, trimmedSrvKey))
+	if err != nil {
+		return emptyToken, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, credsURL, http.NoBody)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	req.Header.Set(AuthTypeHeader, c.Config.Authentication.AuthToken)
+
+	resp, err := c.HttpCaller.Do(req)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	tokenResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return emptyToken, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return emptyToken, ErrHTTPResponse{
+			StatusCode: resp.StatusCode,
+			ErrMsg:     fmt.Sprintf("failed to generate Consul token using [%s]: %s", trimmedSrvKey, string(tokenResp)),
+		}
+	}
+
+	type TokenResp struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	var consulTokenResp TokenResp
+	if err := json.NewDecoder(bytes.NewReader(tokenResp)).Decode(&consulTokenResp); err != nil {
+		return emptyToken, err
+	}
+
+	c.lc.Infof("successfully generated Consul token for service %s", serviceKey)
+
+	return consulTokenResp.Data.Token, nil
+}
+
 func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
 	// call Vault's token self lookup API
 	url, err := c.Config.BuildURL(lookupSelfVaultAPI)
@@ -256,6 +319,7 @@ func (c *Client) refreshToken(ctx context.Context, tokenExpiredCallback pkg.Toke
 
 func (c *Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 	tokenExpiredCallback pkg.TokenExpiredCallback) {
+	c.lc.Infof("kick off token renewal with interval: %v", renewInterval)
 
 	ticker := time.NewTicker(renewInterval)
 	for {
