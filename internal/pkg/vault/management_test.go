@@ -17,11 +17,7 @@
 package vault
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	url2 "net/url"
@@ -431,86 +427,6 @@ func TestEnableConsulSecretEngine(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-}
-
-func TestGenerateConsulToken(t *testing.T) {
-	okJsonData := `{"data":{"token":"token-1", "accessor":"xxxxx"}}`
-	mgmtToken := "mgmt-token"
-	tests := []struct {
-		name          string
-		serviceKey    string
-		mgmtToken     string
-		expectError   bool
-		expectedToken string
-		caller        pkg.Caller
-	}{
-		{"ok:Get token response ok", "service-1", mgmtToken, false, "token-1", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: mgmtToken, statusCode: 200, returnError: false,
-			returnResponse: okJsonData}},
-		{"bad:Get token http status not ok", "service-1", mgmtToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: mgmtToken, statusCode: 500, returnError: false}},
-		{"bad:Get token request not ok", "service-1", mgmtToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: mgmtToken, returnError: true}},
-		{"bad:Get token with empty authToken", "service-1", "", true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: "", statusCode: 403, returnError: true}},
-		{"bad:Get token with empty service key", "", mgmtToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: mgmtToken, statusCode: 400, returnError: true}},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cfgHTTP := types.SecretConfig{
-				Host:     "localhost",
-				Port:     8080,
-				Protocol: "http",
-			}
-			secretstoreClient := Client{
-				Config:     cfgHTTP,
-				HttpCaller: test.caller,
-				lc:         logger.NewMockClient(),
-			}
-
-			actual, err := secretstoreClient.GenerateConsulToken(test.mgmtToken, test.serviceKey)
-			if test.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.expectedToken, actual)
-			}
-		})
-	}
-}
-
-type SimpleMockAuthHttpCaller struct {
-	authTokenHeader string
-	authToken       string
-	statusCode      int
-	returnError     bool
-	returnResponse  string
-}
-
-func (smhc *SimpleMockAuthHttpCaller) Do(req *http.Request) (*http.Response, error) {
-	switch req.Method {
-	case http.MethodGet:
-		if smhc.returnError {
-			return &http.Response{
-				StatusCode: smhc.statusCode,
-			}, pkg.NewErrSecretStore("http response error")
-		}
-
-		if req.Header.Get(smhc.authTokenHeader) != smhc.authToken {
-			return nil, fmt.Errorf("auth header %s is expected but not present in request", smhc.authTokenHeader)
-		}
-
-		return &http.Response{
-			StatusCode: smhc.statusCode,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(smhc.returnResponse)),
-		}, nil
-
-	default:
-		return nil, errors.New("unsupported HTTP method")
-	}
-
 }
 
 func createClient(t *testing.T, url string, lc logger.LoggingClient) *Client {

@@ -101,7 +101,7 @@ func (mssm MockSecretClient) GetTokenDetails() (*types.TokenMetadata, error) {
 	return nil, nil
 }
 
-func (mssm MockSecretClient) GenerateConsulToken(token, serviceKey string) (string, error) {
+func (mssm MockSecretClient) GenerateConsulToken(serviceKey string) (string, error) {
 	panic("GenerateConsulToken not implemented")
 }
 

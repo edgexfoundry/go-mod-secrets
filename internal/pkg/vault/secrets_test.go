@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"sync"
@@ -842,6 +843,86 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 					"After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
 			}
 		})
+	}
+}
+
+func TestGenerateConsulToken(t *testing.T) {
+	okJsonData := `{"data":{"token":"token-1", "accessor":"xxxxx"}}`
+	authToken := "auth-token"
+	tests := []struct {
+		name          string
+		serviceKey    string
+		token         string
+		expectError   bool
+		expectedToken string
+		caller        pkg.Caller
+	}{
+		{"ok:Get token response ok", "service-1", authToken, false, "token-1", &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 200, returnError: false,
+			returnResponse: okJsonData}},
+		{"bad:Get token http status not ok", "service-1", authToken, true, "", &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 500, returnError: false}},
+		{"bad:Get token request not ok", "service-1", authToken, true, "", &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, returnError: true}},
+		{"bad:Get token with empty authToken", "service-1", "", true, "", &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: "", statusCode: 403, returnError: true}},
+		{"bad:Get token with empty service key", "", authToken, true, "", &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 400, returnError: true}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := types.SecretConfig{
+				Host:           "localhost",
+				Port:           8080,
+				Protocol:       "http",
+				Authentication: types.AuthenticationInfo{AuthToken: test.token},
+			}
+			secretstoreClient := Client{
+				Config:     cfgHTTP,
+				HttpCaller: test.caller,
+				lc:         logger.NewMockClient(),
+			}
+
+			actual, err := secretstoreClient.GenerateConsulToken(test.serviceKey)
+			if test.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expectedToken, actual)
+			}
+		})
+	}
+}
+
+type SimpleMockAuthHttpCaller struct {
+	authTokenHeader string
+	authToken       string
+	statusCode      int
+	returnError     bool
+	returnResponse  string
+}
+
+func (smhc *SimpleMockAuthHttpCaller) Do(req *http.Request) (*http.Response, error) {
+	switch req.Method {
+	case http.MethodGet:
+		if smhc.returnError {
+			return &http.Response{
+				StatusCode: smhc.statusCode,
+			}, pkg.NewErrSecretStore("http response error")
+		}
+
+		if req.Header.Get(smhc.authTokenHeader) != smhc.authToken {
+			return nil, fmt.Errorf("auth header %s is expected but not present in request", smhc.authTokenHeader)
+		}
+
+		return &http.Response{
+			StatusCode: smhc.statusCode,
+			Body:       ioutil.NopCloser(bytes.NewBufferString(smhc.returnResponse)),
+		}, nil
+
+	default:
+		return nil, errors.New("unsupported HTTP method")
 	}
 }
 
