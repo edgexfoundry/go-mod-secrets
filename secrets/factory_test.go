@@ -75,7 +75,6 @@ func TestNewSecretsClient(t *testing.T) {
 				Authentication: types.AuthenticationInfo{
 					AuthToken: "TestToken",
 				},
-				RetryWaitPeriod: "1s",
 			}
 
 			client, err := NewSecretsClient(test.Ctx, config, mockLogger, nil)

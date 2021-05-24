@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
@@ -53,14 +52,6 @@ func NewClient(config types.SecretConfig, requester pkg.Caller, forSecrets bool,
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	if config.RetryWaitPeriod != "" {
-		retryTimeDuration, err := time.ParseDuration(config.RetryWaitPeriod)
-		if err != nil {
-			return nil, err
-		}
-		config.RetryWaitPeriodTime = retryTimeDuration
 	}
 
 	vaultClient := Client{

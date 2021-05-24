@@ -31,12 +31,9 @@ func TestNewClient(t *testing.T) {
 		Authentication: types.AuthenticationInfo{
 			AuthToken: "my-unit-test-token",
 		},
-		RetryWaitPeriod: "1ms",
 	}
 	noToken := validConfig
 	noToken.Authentication.AuthToken = ""
-	badWaitPeriod := validConfig
-	badWaitPeriod.RetryWaitPeriod = "n/a"
 
 	tests := []struct {
 		Name        string
@@ -45,7 +42,6 @@ func TestNewClient(t *testing.T) {
 	}{
 		{"Valid", validConfig, false},
 		{"Invalid - no token", noToken, true},
-		{"Invalid - bad wait period", badWaitPeriod, true},
 	}
 
 	for _, test := range tests {

@@ -70,24 +70,18 @@ func TestNewSecretsClient(t *testing.T) {
 	cfgHTTP := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, Authentication: types.AuthenticationInfo{AuthToken: authToken}}
 	cfgInvalidCertPath := types.SecretConfig{Protocol: "https", Host: host, Port: portNum, RootCaCertPath: "/non-existent-directory/rootCa.crt", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
 	cfgNamespace := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, Namespace: "database", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
-	cfgInvalidTime := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "not a real time spec", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
-	cfgValidTime := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "1s", Authentication: types.AuthenticationInfo{AuthToken: authToken}}
-	cfgEmptyToken := types.SecretConfig{Protocol: "http", Host: host, Port: portNum, RetryWaitPeriod: "1s"}
-	s := time.Second
+	cfgEmptyToken := types.SecretConfig{Protocol: "http", Host: host, Port: portNum}
 	bkgCtx := context.Background()
 
 	tests := []struct {
-		name         string
-		cfg          types.SecretConfig
-		expectErr    bool
-		expectedTime *time.Duration
+		name      string
+		cfg       types.SecretConfig
+		expectErr bool
 	}{
-		{"NewSecretClient HTTP configuration", cfgHTTP, false, nil},
-		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true, nil},
-		{"NewSecretClient with Namespace", cfgNamespace, false, nil},
-		{"NewSecretClient with invalid RetryWaitPeriod", cfgInvalidTime, true, nil},
-		{"NewSecretClient with valid RetryWaitPeriod", cfgValidTime, false, &s},
-		{"NewSecretClient with empty token", cfgEmptyToken, true, nil},
+		{"NewSecretClient HTTP configuration", cfgHTTP, false},
+		{"NewSecretClient invalid CA root certificate path", cfgInvalidCertPath, true},
+		{"NewSecretClient with Namespace", cfgNamespace, false},
+		{"NewSecretClient with empty token", cfgEmptyToken, true},
 	}
 	mockLogger := logger.NewMockClient()
 	for _, test := range tests {
@@ -103,9 +97,7 @@ func TestNewSecretsClient(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			if test.expectedTime != nil {
-				assert.Equal(t, *test.expectedTime, client.Config.RetryWaitPeriodTime)
-			}
+			require.NotNil(t, client)
 		})
 	}
 }
@@ -180,7 +172,6 @@ func TestMultipleTokenRenewals(t *testing.T) {
 	tests := []struct {
 		name                     string
 		authToken                string
-		retries                  int
 		tokenExpiredCallbackFunc pkg.TokenExpiredCallback
 		expectError              bool
 		expectedErrorType        error
@@ -216,9 +207,8 @@ func TestMultipleTokenRenewals(t *testing.T) {
 			expectedErrorType: ErrHTTPResponse{StatusCode: 403, ErrMsg: "forbidden"},
 		},
 		{
-			name:              "New secret client with expired token, no TTL remaining, 3 retries",
+			name:              "New secret client with expired token, no TTL remaining",
 			authToken:         "expiredToken",
-			retries:           3,
 			expectError:       true,
 			expectedErrorType: ErrHTTPResponse{StatusCode: 403, ErrMsg: "forbidden"},
 		},
@@ -235,9 +225,8 @@ func TestMultipleTokenRenewals(t *testing.T) {
 			expectedErrorType: nil,
 		},
 		{
-			name:      "New secret client with to be expired token, 3 retries, retry func",
+			name:      "New secret client with to be expired token, and retry func",
 			authToken: "toToExpiredToken",
-			retries:   3,
 			tokenExpiredCallbackFunc: func(expiredToken string) (replacementToken string, retry bool) {
 				time.Sleep(1 * time.Second)
 				return "testToken1", true
@@ -250,11 +239,10 @@ func TestMultipleTokenRenewals(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:                    host,
-				Port:                    portNum,
-				Protocol:                "http",
-				Authentication:          types.AuthenticationInfo{AuthToken: test.authToken},
-				AdditionalRetryAttempts: test.retries,
+				Host:           host,
+				Port:           portNum,
+				Protocol:       "http",
+				Authentication: types.AuthenticationInfo{AuthToken: test.authToken},
 			}
 
 			client, err := NewSecretsClient(bkgCtx, cfgHTTP, mockLogger, test.tokenExpiredCallbackFunc)
@@ -401,7 +389,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		expectedValues    map[string]string
 		expectError       bool
 		expectedErrorType error
-		retries           int
 		expectedDoCallNum int
 		caller            pkg.Caller
 	}{
@@ -418,7 +405,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Get Keys",
+			name:              "Get Two Keys",
 			path:              testPath,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
@@ -526,82 +513,14 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				Data: testData,
 			},
 		},
-		{
-			name:              "Retry 10 times, 1st success",
-			retries:           10,
-			path:              testPath,
-			keys:              []string{"one"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
-			expectedErrorType: nil,
-			expectedDoCallNum: 1,
-			caller: &InMemoryMockCaller{
-				Data: testData,
-			},
-		},
-		{
-			name:              "Retry 9 times, all HTTP status failures",
-			retries:           9,
-			path:              testPath,
-			keys:              []string{"one"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			// expected is retries + 1
-			expectedDoCallNum: 10,
-			caller: &ErrorMockCaller{
-				ReturnError: false,
-				StatusCode:  404,
-			},
-		},
-		{
-			name:              "Retry 9 times, all catastrophic failure",
-			retries:           9,
-			path:              testPath,
-			keys:              []string{"one"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			expectedDoCallNum: 10,
-			caller: &ErrorMockCaller{
-				ReturnError: true,
-			},
-		},
-		{
-			name:              "Retry 9 times, last works",
-			retries:           9,
-			path:              testPath,
-			keys:              []string{"one"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
-			expectedDoCallNum: 10,
-			caller: &InMemoryMockCaller{
-				NErrorsBeforeSuccess: 9,
-				Data:                 testData,
-			},
-		},
-		{
-			name:              "Invalid retry num",
-			retries:           -1,
-			path:              testPath,
-			keys:              []string{"one"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			expectedDoCallNum: 0,
-			caller: &ErrorMockCaller{
-				ReturnError: true,
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:                    "localhost",
-				Port:                    8080,
-				Protocol:                "http",
-				Namespace:               testNamespace,
-				AdditionalRetryAttempts: test.retries,
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
@@ -655,7 +574,6 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		expectedValues    map[string]string
 		expectError       bool
 		expectedErrorType error
-		retries           int
 		expectedDoCallNum int
 		caller            pkg.Caller
 	}{
@@ -719,83 +637,15 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				Data: testData,
 			},
 		},
-		{
-			name:              "Retry 10 times, 1st success",
-			retries:           10,
-			path:              testPath,
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
-			expectedErrorType: nil,
-			expectedDoCallNum: 1,
-			caller: &InMemoryMockCaller{
-				Data: testData,
-			},
-		},
-		{
-			name:              "Retry 9 times, all HTTP status failures",
-			retries:           9,
-			path:              testPath,
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			// expected is retries + 1
-			expectedDoCallNum: 10,
-			caller: &ErrorMockCaller{
-				ReturnError: false,
-				StatusCode:  404,
-			},
-		},
-		{
-			name:              "Retry 9 times, all catastrophic failure",
-			retries:           9,
-			path:              testPath,
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    nil,
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			expectedDoCallNum: 10,
-			caller: &ErrorMockCaller{
-				ReturnError: true,
-			},
-		},
-		{
-			name:              "Retry 9 times, last works",
-			retries:           9,
-			path:              testPath,
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
-			expectedDoCallNum: 10,
-			caller: &InMemoryMockCaller{
-				NErrorsBeforeSuccess: 9,
-				Data:                 testData,
-			},
-		},
-		{
-			name:              "Invalid retry num",
-			retries:           -1,
-			path:              testPath,
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    nil,
-			expectError:       true,
-			expectedErrorType: TestConnError,
-			expectedDoCallNum: 0,
-			caller: &ErrorMockCaller{
-				ReturnError: true,
-			},
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:                    "localhost",
-				Port:                    8080,
-				Protocol:                "http",
-				Namespace:               testNamespace,
-				AdditionalRetryAttempts: test.retries,
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
