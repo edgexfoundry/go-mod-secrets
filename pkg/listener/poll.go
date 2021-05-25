@@ -59,7 +59,7 @@ func NewInMemoryCacheListener(client secrets.SecretClient, updateChan chan map[s
 		keys:              keys,
 		updaterChan:       updateChan,
 		errorChan:         errorChan,
-		stopChan:          make(chan struct{}),
+		stopChan:          make(chan struct{}, 10),
 		backoffPattern:    backoffPattern,
 		isRunning:         false,
 		timerFunc:         time.NewTimer,
