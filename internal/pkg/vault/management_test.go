@@ -436,11 +436,10 @@ func createClient(t *testing.T, url string, lc logger.LoggingClient) *Client {
 	require.NoError(t, err)
 
 	config := types.SecretConfig{
-		Type:            "vault",
-		Protocol:        urlDetails.Scheme,
-		Host:            urlDetails.Hostname(),
-		Port:            port,
-		RetryWaitPeriod: "1s",
+		Type:     "vault",
+		Protocol: urlDetails.Scheme,
+		Host:     urlDetails.Hostname(),
+		Port:     port,
 	}
 
 	client, err := NewClient(config, pkg.NewMockRequester().Insecure(), false, lc)

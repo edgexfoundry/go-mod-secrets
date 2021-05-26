@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // SecretConfig contains configuration settings used to communicate with an HTTP based secret provider
@@ -28,15 +27,12 @@ type SecretConfig struct {
 	Host string
 	Port int
 	// Path is the base path to the secret's location in the secret store
-	Path                    string
-	Protocol                string
-	Namespace               string
-	RootCaCertPath          string
-	ServerName              string
-	Authentication          AuthenticationInfo
-	AdditionalRetryAttempts int
-	RetryWaitPeriod         string
-	RetryWaitPeriodTime     time.Duration
+	Path           string
+	Protocol       string
+	Namespace      string
+	RootCaCertPath string
+	ServerName     string
+	Authentication AuthenticationInfo
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider

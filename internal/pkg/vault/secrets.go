@@ -87,35 +87,11 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 
 // GetSecrets retrieves the secrets at the provided sub-path that matches the specified keys.
 func (c *Client) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
-	data := make(map[string]string)
-	var err error
-	addRetryAttempts := c.Config.AdditionalRetryAttempts
-	switch {
-	case addRetryAttempts < 0:
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
-	case addRetryAttempts == 0:
-		// no retries
-		data, err = c.getAllKeys(subPath)
-		if err != nil {
-			return nil, err
-		}
-	case addRetryAttempts > 0:
-		// do some retries
-		// note the limit is 1 + additional retry attempts, cause we always need
-		// to do the first try
-		data, err = c.getAllKeys(subPath)
 
-		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-			time.Sleep(c.Config.RetryWaitPeriodTime)
-
-			data, err = c.getAllKeys(subPath)
-		}
-
-		// since we finished the above loop, then check if the last iteration
-		// failed
-		if err != nil {
-			return nil, err
-		}
+	// no need to retry now as the secretstore should be ready as the security bootstrapper starts in sequence now
+	data, err := c.getAllKeys(subPath)
+	if err != nil {
+		return nil, err
 	}
 
 	// Do not filter any of the secrets
@@ -145,29 +121,8 @@ func (c *Client) GetSecrets(subPath string, keys ...string) (map[string]string, 
 
 // StoreSecrets stores the secrets at the provided sub-path for the specified keys.
 func (c *Client) StoreSecrets(subPath string, secrets map[string]string) error {
-
-	var err error
-	addRetryAttempts := c.Config.AdditionalRetryAttempts
-	switch {
-	case addRetryAttempts < 0:
-		err = pkg.NewErrSecretStore(fmt.Sprintf("invalid retry attempts setting %d", addRetryAttempts))
-	case addRetryAttempts == 0:
-		// no retries
-		err = c.store(subPath, secrets)
-	case addRetryAttempts > 0:
-		// do some retries
-		// note the limit is 1 + additional retry attempts, cause we always need
-		// to do the first try
-		err = c.store(subPath, secrets)
-
-		for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-			time.Sleep(c.Config.RetryWaitPeriodTime)
-
-			err = c.store(subPath, secrets)
-		}
-	}
-
-	return err
+	// this interface acting as facade, just calling the internal store func on the client
+	return c.store(subPath, secrets)
 }
 
 // GenerateConsulToken generates a new Consul token using serviceKey as role name to
@@ -348,30 +303,12 @@ func (c *Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 						return
 					}
 					c.Config.Authentication.AuthToken = replacementToken
+					c.lc.Info("auth token is replaced")
 				} else {
-					// retry the renew calls upto retryAttempts
-					addRetryAttempts := c.Config.AdditionalRetryAttempts
-					// no retry
-					if addRetryAttempts <= 0 {
-						ticker.Stop()
-						return
-					}
-
-					// do some retries
-					// note the limit is 1 + additional retry attempts, cause we always need
-					// to do the first try
-					for tryNum := 1; err != nil && tryNum < 1+addRetryAttempts; tryNum++ {
-						time.Sleep(c.Config.RetryWaitPeriodTime)
-
-						err = c.renewToken()
-					}
-
-					// since we finished the above loop,
-					// then check if the last iteration failed
-					if err != nil {
-						ticker.Stop()
-						return
-					}
+					// other type of errors, cannot continue, quitting the renewal routine
+					c.lc.Errorf("dismiss the renewal process as the current token cannot be renewed: %v", err)
+					ticker.Stop()
+					return
 				}
 			}
 		}
