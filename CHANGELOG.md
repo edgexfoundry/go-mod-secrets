@@ -3,7 +3,7 @@
 ## Secrets Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-secrets)
 
-## [2.0.0] - 2021-06-10
+## [2.0.0] - 2021-06-30
 ### Features ✨
 - **security:** Add GenerateConsulToken API to SecretClient interface ([#6432e0d](https://github.com/edgexfoundry/go-mod-secrets/commits/6432e0d))
 - **security:** Add Generate Registry Token API for secretstore client ([#5e2f4d4](https://github.com/edgexfoundry/go-mod-secrets/commits/5e2f4d4))
