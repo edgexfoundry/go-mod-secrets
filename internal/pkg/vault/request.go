@@ -24,7 +24,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients"
+	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 )
 
 // parameters structure for request method
@@ -71,7 +71,7 @@ func (c *Client) doRequest(params RequestArgs) (int, error) {
 	if params.AuthToken != "" {
 		req.Header.Set(AuthTypeHeader, params.AuthToken)
 	}
-	req.Header.Set("Content-Type", clients.ContentTypeJSON)
+	req.Header.Set("Content-Type", common.ContentTypeJSON)
 	resp, err := c.HttpCaller.Do(req)
 
 	if err != nil {
