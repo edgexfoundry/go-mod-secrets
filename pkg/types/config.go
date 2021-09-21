@@ -27,7 +27,9 @@ type SecretConfig struct {
 	Host string
 	Port int
 	// Path is the base path to the secret's location in the secret store
-	Path           string
+	Path string
+	// SecretsFile is path to optional JSON file containing secrets to seed into service's SecretStore
+	SecretsFile    string
 	Protocol       string
 	Namespace      string
 	RootCaCertPath string
