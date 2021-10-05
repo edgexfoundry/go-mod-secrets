@@ -16,6 +16,7 @@
 package listener
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -103,6 +104,10 @@ func (mssm MockSecretClient) GetTokenDetails() (*types.TokenMetadata, error) {
 
 func (mssm MockSecretClient) GenerateConsulToken(serviceKey string) (string, error) {
 	panic("GenerateConsulToken not implemented")
+}
+
+func (mssm MockSecretClient) SetAuthToken(_ context.Context, _ string) error {
+	panic("SetAuthToken not implemented")
 }
 
 func TestGetKeys(t *testing.T) {

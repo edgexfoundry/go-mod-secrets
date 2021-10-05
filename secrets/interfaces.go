@@ -16,6 +16,8 @@
 package secrets
 
 import (
+	"context"
+
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
 )
 
@@ -43,6 +45,9 @@ type SecretClient interface {
 	// caller should persist or cache the generated Consul token, at least per runtime cycle, to reduce the number of
 	// tokens stored in Consul server side and the number of calls to this API
 	GenerateConsulToken(serviceKey string) (string, error)
+
+	// SetAuthToken sets the internal Auth Token with the new value specified.
+	SetAuthToken(ctx context.Context, token string) error
 }
 
 // SecretStoreClient provides a contract for managing a Secret Store from a secret store provider.

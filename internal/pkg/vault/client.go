@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
@@ -28,20 +29,23 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 )
 
-// *Client defines the behavior for interacting with the Vault REST secret key/value store via HTTP(S).
+// Client defines the behavior for interacting with the Vault REST secret key/value store via HTTP(S).
 type Client struct {
 	Config     types.SecretConfig
 	HttpCaller pkg.Caller
 	lc         logger.LoggingClient
 	context    context.Context
+	// vaultTokenCancelFunc is an internal map with token as key and the context.cancel function as value
+	vaultTokenCancelFunc vaultTokenToCancelFuncMap
+	mapMutex             sync.Mutex
+	tokenExpiredCallback pkg.TokenExpiredCallback
 }
 
-// NewVaultClient constructs a Vault *Client which communicates with Vault via HTTP(S)
-//
+// NewClient constructs a Vault *Client which communicates with Vault via HTTP(S)
 // lc is any logging client that implements the loggingClient interface;
 // today EdgeX's logger.LoggingClient from go-mod-core-contracts satisfies this implementation
-//
 func NewClient(config types.SecretConfig, requester pkg.Caller, forSecrets bool, lc logger.LoggingClient) (*Client, error) {
+
 	if forSecrets && config.Authentication.AuthToken == "" {
 		return nil, pkg.NewErrSecretStore("AuthToken is required in config")
 	}
@@ -55,9 +59,11 @@ func NewClient(config types.SecretConfig, requester pkg.Caller, forSecrets bool,
 	}
 
 	vaultClient := Client{
-		Config:     config,
-		HttpCaller: requester,
-		lc:         lc,
+		Config:               config,
+		HttpCaller:           requester,
+		lc:                   lc,
+		mapMutex:             sync.Mutex{},
+		vaultTokenCancelFunc: make(vaultTokenToCancelFuncMap),
 	}
 
 	return &vaultClient, err
