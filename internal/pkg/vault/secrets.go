@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
@@ -37,50 +36,15 @@ import (
 // in the background go-routine
 type vaultTokenToCancelFuncMap map[string]context.CancelFunc
 
-// NewUserClient constructs a Vault *Client which communicates with Vault via HTTP(S) for basic usage of secrets
-//
-// ctx is the background context that can be used to cancel or cleanup
-// the background process when it is no longer needed
-//
-// lc is any logging client that implements the loggingClient interface;
-// today EdgeX's logger.LoggingClient from go-mod-core-contracts satisfies this implementation
-//
-// tokenExpiredCallback is the callback function dealing with the expired token
-// and getting a replacement token
-// it can be nil if the caller choose not to do that
+// NewSecretsClient constructs a Vault *Client which communicates with Vault via HTTP(S) for basic usage of secrets
 func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.LoggingClient, callback pkg.TokenExpiredCallback) (*Client, error) {
 	vaultClient, err := NewClient(config, nil, true, lc)
 	if err != nil {
 		return nil, err
 	}
 
-	// tokenCancelFunc is an internal map with token as key and
-	// the context.cancel function as value
-	tokenCancelFunc := make(vaultTokenToCancelFuncMap)
-
-	// mapMutex protects the internal map cache from race conditions
-	mapMutex := &sync.Mutex{}
-	mapMutex.Lock()
-
-	// if there is context already associated with the given token,
-	// then we cancel it first
-	if cancel, exists := tokenCancelFunc[config.Authentication.AuthToken]; exists {
-		cancel()
-	}
-
-	mapMutex.Unlock()
-
-	cCtx, cancel := context.WithCancel(ctx)
-	if err = vaultClient.refreshToken(cCtx, callback); err != nil {
-		cancel()
-		mapMutex.Lock()
-		delete(tokenCancelFunc, config.Authentication.AuthToken)
-		mapMutex.Unlock()
-	} else {
-		mapMutex.Lock()
-		tokenCancelFunc[config.Authentication.AuthToken] = cancel
-		mapMutex.Unlock()
-	}
+	vaultClient.tokenExpiredCallback = callback
+	err = vaultClient.SetAuthToken(ctx, config.Authentication.AuthToken)
 
 	return vaultClient, err
 }
@@ -88,7 +52,7 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 // GetSecrets retrieves the secrets at the provided sub-path that matches the specified keys.
 func (c *Client) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
 
-	// no need to retry now as the secretstore should be ready as the security bootstrapper starts in sequence now
+	// no need to retry now as the secret store should be ready as the security bootstrapper starts in sequence now
 	data, err := c.getAllKeys(subPath)
 	if err != nil {
 		return nil, err
@@ -126,8 +90,8 @@ func (c *Client) StoreSecrets(subPath string, secrets map[string]string) error {
 }
 
 // GenerateConsulToken generates a new Consul token using serviceKey as role name to
-// call secretstore's consul/creds API
-// the serviceKey is used in the part of secretstore's URL as role name and should be accessible to the API
+// call secret store's consul/creds API
+// the serviceKey is used in the part of secret store's URL as role name and should be accessible to the API
 func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
 	trimmedSrvKey := strings.TrimSpace(serviceKey)
 	if len(trimmedSrvKey) == 0 {
@@ -135,7 +99,7 @@ func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
 	}
 
 	if len(c.Config.Authentication.AuthToken) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("secretestore token from config cannot be empty for generating Consul token")
+		return emptyToken, pkg.NewErrSecretStore("secrete store token from config cannot be empty for generating Consul token")
 	}
 
 	credsURL, err := c.Config.BuildURL(fmt.Sprintf(GenerateConsulTokenAPI, trimmedSrvKey))
@@ -184,6 +148,41 @@ func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
 	c.lc.Infof("successfully generated Consul token for service %s", serviceKey)
 
 	return consulTokenResp.Data.Token, nil
+}
+
+func (c *Client) SetAuthToken(ctx context.Context, newToken string) error {
+	// mapMutex protects the internal map cache from race conditions
+	c.mapMutex.Lock()
+
+	// if there is a context already associated with the current token then need to cancel it
+	if cancel, exists := c.vaultTokenCancelFunc[c.Config.Authentication.AuthToken]; exists {
+		cancel()
+	}
+
+	// if there is context already associated with the new token, then we cancel it first
+	if cancel, exists := c.vaultTokenCancelFunc[newToken]; exists {
+		cancel()
+	}
+
+	c.mapMutex.Unlock()
+
+	c.Config.Authentication.AuthToken = newToken
+
+	cCtx, cancel := context.WithCancel(ctx)
+	var err error
+
+	if err = c.refreshToken(cCtx, c.tokenExpiredCallback); err != nil {
+		cancel()
+		c.mapMutex.Lock()
+		delete(c.vaultTokenCancelFunc, c.Config.Authentication.AuthToken)
+		c.mapMutex.Unlock()
+	} else {
+		c.mapMutex.Lock()
+		c.vaultTokenCancelFunc[c.Config.Authentication.AuthToken] = cancel
+		c.mapMutex.Unlock()
+	}
+
+	return err
 }
 
 func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
@@ -243,11 +242,11 @@ func (c *Client) refreshToken(ctx context.Context, tokenExpiredCallback pkg.Toke
 		return nil
 	}
 
-	// the renew interval is half of period value
+	// the renewal interval is half of period value
 	tokenPeriod := time.Duration(tokenData.Period) * time.Second
 	renewInterval := tokenPeriod / 2
 	if renewInterval <= 0 {
-		// cannot renew, as the renew interval is non-positive
+		// cannot renew, as the renewal interval is non-positive
 		c.lc.Warn("no token renewal since renewInterval is 0")
 		return nil
 	}
