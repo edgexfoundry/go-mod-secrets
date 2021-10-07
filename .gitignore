@@ -11,6 +11,5 @@ glide.lock
 # log dirs
 **/logs
 
-*.sum
 coverage.out
 VERSION

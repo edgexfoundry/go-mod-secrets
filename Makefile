@@ -14,5 +14,5 @@ tidy:
 test:
 	$(GO) test -count=1 -race ./... -coverprofile=coverage.out
 	$(GO) vet ./...
-	gofmt -l .
-	[ "`gofmt -l .`" = "" ]
+	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
+	[ "`gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")`" = "" ]
