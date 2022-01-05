@@ -92,6 +92,7 @@ func createHTTPClient(config types.SecretConfig) (pkg.Caller, error) {
 			TLSClientConfig: &tls.Config{
 				RootCAs:    caCertPool,
 				ServerName: config.ServerName,
+				MinVersion: tls.VersionTLS12,
 			},
 		},
 	}, nil

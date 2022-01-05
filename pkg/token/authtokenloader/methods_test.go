@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const createTokenJSON = `{"auth":{"client_token":"some-token-value"}}`
+const createTokenJSON = `{"auth":{"client_token":"some-token-value"}}` // nolint: gosec
 const vaultInitJSON = `{"root_token":"some-token-value"}`
 const expectedToken = "some-token-value"
 

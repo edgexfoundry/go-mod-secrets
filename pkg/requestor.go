@@ -47,7 +47,7 @@ func NewRequester(logger logger.LoggingClient) HTTPSRequester {
 
 func (r *fluentRequester) Insecure() Caller {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
 	}
 	return &http.Client{Timeout: httpClientTimeoutDuration, Transport: tr}
 }
@@ -69,6 +69,7 @@ func (r *fluentRequester) WithTLS(caReader io.Reader, serverName string) Caller 
 			RootCAs:            caCertPool,
 			InsecureSkipVerify: false,
 			ServerName:         serverName,
+			MinVersion:         tls.VersionTLS12,
 		},
 		TLSHandshakeTimeout: httpClientTimeoutDuration,
 	}
@@ -84,7 +85,7 @@ func NewMockRequester() *mockRequester {
 
 func (r *mockRequester) Insecure() Caller {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
 	}
 	return &http.Client{Timeout: httpClientTimeoutDuration, Transport: tr}
 }

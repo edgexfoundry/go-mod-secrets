@@ -40,9 +40,7 @@ type SecretConfig struct {
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
 func (c SecretConfig) BuildURL(path string) (string, error) {
 	// Make sure there is not a trailing slash
-	if strings.HasSuffix(path, "/") {
-		path = path[:len(path)-1]
-	}
+	path = strings.TrimSuffix(path, "/")
 
 	if len(c.Protocol) == 0 {
 		return "", fmt.Errorf("unable to build URL: Protocol not set. Please check configuration settings")
