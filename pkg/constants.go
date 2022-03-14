@@ -16,8 +16,9 @@ package pkg
 
 // Defines the valid secret store providers.
 const (
-	CoreSecurityServiceKey = "edgex-core-security"
-	ConfigFileName         = "configuration.toml"
-	ConfigDirectory        = "./res"
-	ConfigDirEnv           = "EDGEX_CONF_DIR"
+	CoreSecurityServiceKey         = "edgex-core-security"
+	ConfigFileName                 = "configuration.toml"
+	ConfigDirectory                = "./res"
+	ConfigDirEnv                   = "EDGEX_CONF_DIR"
+	SpiffeTokenProviderGetTokenAPI = "/api/v2/gettoken" // nolint: gosec
 )
