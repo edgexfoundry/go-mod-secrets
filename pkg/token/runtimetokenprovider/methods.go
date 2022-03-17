@@ -23,7 +23,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
@@ -38,7 +37,7 @@ type runtimetokenprovider struct {
 	ctx                  context.Context
 	lc                   logger.LoggingClient
 	runtimeTokenProvider types.RuntimeTokenProviderInfo
-	getTLSConfig         func(context.Context, logger.LoggingClient, string) (*tls.Config, error)
+	getTLSConfig         func(context.Context, logger.LoggingClient) (*tls.Config, error)
 	source               *workloadapi.X509Source
 }
 
@@ -62,7 +61,7 @@ func (p *runtimetokenprovider) GetRawToken(serviceKey string) (string, error) {
 		return "", nil
 	}
 
-	tlsConf, err := p.getTLSConfig(p.ctx, p.lc, p.runtimeTokenProvider.SocketPath)
+	tlsConf, err := p.getTLSConfig(p.ctx, p.lc)
 	if err != nil {
 		return "", fmt.Errorf("failed to get TLS Config %s", err.Error())
 	}
@@ -123,14 +122,14 @@ func (p *runtimetokenprovider) GetRawToken(serviceKey string) (string, error) {
 	return rawToken, gotTokenErr
 }
 
-func (p *runtimetokenprovider) SetTLSConfigFunc(tlsConfFunc func(context.Context, logger.LoggingClient, string) (*tls.Config, error)) {
+func (p *runtimetokenprovider) SetTLSConfigFunc(tlsConfFunc func(context.Context, logger.LoggingClient) (*tls.Config, error)) {
 	p.getTLSConfig = tlsConfFunc
 }
 
-func (p *runtimetokenprovider) defaultGetTLSConfig(ctx context.Context, lc logger.LoggingClient, socketPath string) (*tls.Config, error) {
-	udsSocket := socketPath
-	if !strings.HasPrefix(socketPath, "unix://") {
-		udsSocket = "unix://" + socketPath
+func (p *runtimetokenprovider) defaultGetTLSConfig(ctx context.Context, lc logger.LoggingClient) (*tls.Config, error) {
+	udsSocket := p.runtimeTokenProvider.EndpointSocket
+	if !strings.HasPrefix(p.runtimeTokenProvider.EndpointSocket, "unix://") {
+		udsSocket = "unix://" + p.runtimeTokenProvider.EndpointSocket
 	}
 
 	lc.Infof("using Unix Domain Socket at %s", udsSocket)
@@ -147,16 +146,12 @@ func (p *runtimetokenprovider) defaultGetTLSConfig(ctx context.Context, lc logge
 
 	lc.Info("workload got X509 source")
 
-	trustDomainString := os.Getenv("SPIFFE_TRUST_DOMAIN")
-	if len(trustDomainString) == 0 {
-		return nil, fmt.Errorf("environment variable SPIFFE_TRUST_DOMAIN must be set")
-	}
-
-	td, err := spiffeid.TrustDomainFromString(trustDomainString)
+	td, err := spiffeid.TrustDomainFromString(p.runtimeTokenProvider.TrustDomain)
 	if err != nil {
-		return nil, fmt.Errorf("could not get SPIFFE trust domain from string '%s': %v", trustDomainString, err)
+		return nil, fmt.Errorf("could not get SPIFFE trust domain from string '%s': %v", p.runtimeTokenProvider.TrustDomain, err)
 	}
 
 	tlsConf := tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeMemberOf(td))
+
 	return tlsConf, nil
 }

@@ -36,11 +36,12 @@ func TestNewRuntimeTokenProvider(t *testing.T) {
 
 	mockLogger := logger.NewMockClient()
 	testProviderConf := types.RuntimeTokenProviderInfo{
-		Enabled:    true,
-		Protocol:   "http",
-		Host:       "localhost",
-		Port:       8888,
-		SocketPath: "/tmp/edgex/socket",
+		Enabled:        true,
+		Protocol:       "http",
+		Host:           "localhost",
+		Port:           8888,
+		TrustDomain:    "test.domain",
+		EndpointSocket: "/tmp/edgex/socket",
 	}
 	provider := NewRuntimeTokenProvider(ctx, mockLogger, testProviderConf)
 	require.NotEmpty(t, provider)
@@ -64,17 +65,18 @@ func TestGetRawToken(t *testing.T) {
 	require.NoError(t, err)
 
 	testProviderConf := types.RuntimeTokenProviderInfo{
-		Enabled:    true,
-		Protocol:   testServerURL.Scheme,
-		Host:       testServerHost,
-		Port:       portNum,
-		SocketPath: "/tmp/edgex/socket",
+		Enabled:        true,
+		Protocol:       testServerURL.Scheme,
+		Host:           testServerHost,
+		Port:           portNum,
+		TrustDomain:    "test.domain",
+		EndpointSocket: "/tmp/edgex/socket",
 	}
 
 	provider := NewRuntimeTokenProvider(ctx, mockLogger, testProviderConf)
 
 	// mock the TLSConfig part as this is no real spiffe server in the unit tests
-	(provider.(*runtimetokenprovider)).SetTLSConfigFunc(func(context.Context, logger.LoggingClient, string) (*tls.Config, error) {
+	(provider.(*runtimetokenprovider)).SetTLSConfigFunc(func(context.Context, logger.LoggingClient) (*tls.Config, error) {
 		return &tls.Config{MinVersion: tls.VersionTLS13}, nil
 	})
 

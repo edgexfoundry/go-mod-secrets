@@ -63,11 +63,12 @@ type AuthenticationInfo struct {
 
 // RuntimeTokenProviderInfo contains the information about the server of a runtime secret token provider
 type RuntimeTokenProviderInfo struct {
-	Enabled    bool
-	Protocol   string
-	Host       string
-	Port       int
-	SocketPath string
+	Enabled        bool
+	Protocol       string
+	Host           string
+	Port           int
+	TrustDomain    string
+	EndpointSocket string
 	// comma-separated list of required secrets for the service
 	// currently we have redis in a typical use case
 	RequiredSecrets string
