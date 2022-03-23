@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
- * Copyright 2021 Intel Corp.
+ * Copyright 2022 Intel Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -35,26 +35,66 @@ type SecretConfig struct {
 	RootCaCertPath string
 	ServerName     string
 	Authentication AuthenticationInfo
+	// RuntimeTokenProvider could be optional if not using delayed start from a runtime token provider
+	RuntimeTokenProvider RuntimeTokenProviderInfo
 }
 
 // BuildURL constructs a URL which can be used to identify a HTTP based secret provider
 func (c SecretConfig) BuildURL(path string) (string, error) {
+	return buildURL(c.Protocol, c.Host, path, c.Port)
+}
+
+// BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
+// subPath is the location of the secrets in the secrets engine
+func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
+	return c.BuildURL(c.Path + subPath)
+}
+
+// IsRuntimeProviderEnabled returns whether the token provider is using runtime token mechanism
+func (c SecretConfig) IsRuntimeProviderEnabled() bool {
+	return c.RuntimeTokenProvider.Enabled
+}
+
+// AuthenticationInfo contains authentication information to be used when communicating with an HTTP based provider
+type AuthenticationInfo struct {
+	AuthType  string
+	AuthToken string
+}
+
+// RuntimeTokenProviderInfo contains the information about the server of a runtime secret token provider
+type RuntimeTokenProviderInfo struct {
+	Enabled        bool
+	Protocol       string
+	Host           string
+	Port           int
+	TrustDomain    string
+	EndpointSocket string
+	// comma-separated list of required secrets for the service
+	// currently we have redis in a typical use case
+	RequiredSecrets string
+}
+
+func (provider RuntimeTokenProviderInfo) BuildProviderURL(path string) (string, error) {
+	return buildURL(provider.Protocol, provider.Host, path, provider.Port)
+}
+
+func buildURL(protocol, host, path string, portNum int) (string, error) {
 	// Make sure there is not a trailing slash
 	path = strings.TrimSuffix(path, "/")
 
-	if len(c.Protocol) == 0 {
+	if len(protocol) == 0 {
 		return "", fmt.Errorf("unable to build URL: Protocol not set. Please check configuration settings")
 	}
 
-	if len(c.Host) == 0 {
+	if len(host) == 0 {
 		return "", fmt.Errorf("unable to build URL: Host not set. Please check configuration settings")
 	}
 
-	if c.Port == 0 {
+	if portNum == 0 {
 		return "", fmt.Errorf("unable to build URL: Port not set. Please check configuration settings")
 	}
 
-	builtUrl := fmt.Sprintf("%s://%s:%v%s", c.Protocol, c.Host, c.Port, path)
+	builtUrl := fmt.Sprintf("%s://%s:%v%s", protocol, host, portNum, path)
 	_, err := url.Parse(builtUrl)
 	if err != nil {
 		return "", fmt.Errorf(
@@ -64,16 +104,4 @@ func (c SecretConfig) BuildURL(path string) (string, error) {
 	}
 
 	return builtUrl, err
-}
-
-// BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
-// subPath is the location of the secrets in the secrets engine
-func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
-	return c.BuildURL(c.Path + subPath)
-}
-
-// AuthenticationInfo contains authentication information to be used when communicating with an HTTP based provider
-type AuthenticationInfo struct {
-	AuthType  string
-	AuthToken string
 }
