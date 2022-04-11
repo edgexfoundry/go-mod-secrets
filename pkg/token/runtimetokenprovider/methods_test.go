@@ -1,6 +1,3 @@
-//go:build delayedstart
-// +build delayedstart
-
 //
 // Copyright (c) 2022 Intel Corporation
 //

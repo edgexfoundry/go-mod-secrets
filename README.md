@@ -4,12 +4,12 @@
 
 ## Delayed Start Go Build Tags
 
-The delayed start feature is conditional built with go build tags `delayedstart`.
-The default behavior is not included. If other go services or go module would like to build with this feature,
-please build them with additional go build tags like the following:
+The delayed start feature is by default built-in and included in this module.
+If other go services would like to **exclude** the delayed start feature in the builds,
+please do the go builds with tags `non_delayedstart` explicitly like the following:
 
 ```console
-user$ go build <otherservice.go> -tags delayedstart 
+user$ go build <exclude_delayed_start_service.go> -tags non_delayedstart
 ```
 
 ## Community

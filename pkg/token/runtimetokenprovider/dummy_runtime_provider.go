@@ -1,5 +1,5 @@
-//go:build !delayedstart
-// +build !delayedstart
+//go:build non_delayedstart
+// +build non_delayedstart
 
 //
 // Copyright (c) 2022 Intel Corporation
@@ -35,5 +35,6 @@ func NewRuntimeTokenProvider(_ context.Context, _ logger.LoggingClient,
 }
 
 func (p *runtimetokenprovider) GetRawToken(serviceKey string) (string, error) {
-	return "", fmt.Errorf("wrong build: runtime token provider should be built with -tags delayedstart")
+	return "", fmt.Errorf("wrong build: RuntimeTokenProvider is not available. " +
+		"Build with \"-tags delayedstart\" on the go build command line to enable runtime support for this feature.")
 }

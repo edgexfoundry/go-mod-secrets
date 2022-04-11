@@ -12,17 +12,14 @@ GO=CGO_ENABLED=1 GO111MODULE=on go
 tidy:
 	go mod tidy
 
-unittest:
+unittest: tidy
 	$(GO) test -count=1 -race ./... -coverprofile=coverage.out
-
-unittest_delayedstart:
-	$(GO) test -count=1 -race -tags delayedstart ./... -coverprofile=coverage.out
 
 lint:
 	@which golangci-lint >/dev/null || echo "WARNING: go linter not installed. To install, run\n  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b \$$(go env GOPATH)/bin v1.42.1"
 	@if [ "z${ARCH}" = "zx86_64" ] && which golangci-lint >/dev/null ; then golangci-lint run --config .golangci.yml ; else echo "WARNING: Linting skipped (not on x86_64 or linter not installed)"; fi
 
-test: unittest unittest_delayedstart lint
+test: unittest lint
 	$(GO) vet ./...
 	gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")
 	[ "`gofmt -l $$(find . -type f -name '*.go'| grep -v "/vendor/")`" = "" ]
