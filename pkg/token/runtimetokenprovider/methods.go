@@ -1,3 +1,6 @@
+//go:build !non_delayedstart
+// +build !non_delayedstart
+
 //
 // Copyright (c) 2022 Intel Corporation
 //
