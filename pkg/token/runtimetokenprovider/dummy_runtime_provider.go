@@ -36,5 +36,5 @@ func NewRuntimeTokenProvider(_ context.Context, _ logger.LoggingClient,
 
 func (p *runtimetokenprovider) GetRawToken(serviceKey string) (string, error) {
 	return "", fmt.Errorf("wrong build: RuntimeTokenProvider is not available. " +
-		"Build with \"-tags delayedstart\" on the go build command line to enable runtime support for this feature.")
+		"Build without \"-tags non_delayedstart\" on the go build command line to enable runtime support for this feature.")
 }
