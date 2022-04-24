@@ -801,6 +801,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 	}
 
 	return &http.Response{
+		Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 		StatusCode: emc.StatusCode,
 	}, nil
 }
@@ -819,6 +820,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		if caller.nErrorsReturned != caller.NErrorsBeforeSuccess {
 			caller.nErrorsReturned++
 			return &http.Response{
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
@@ -831,6 +833,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 	case http.MethodGet:
 		if req.URL.Path != testPath {
 			return &http.Response{
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
@@ -843,6 +846,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 	case http.MethodPost:
 		if req.URL.Path != testPath {
 			return &http.Response{
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
@@ -850,6 +854,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		_ = json.NewDecoder(req.Body).Decode(&result)
 		caller.Result = result
 		return &http.Response{
+			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 			StatusCode: 200,
 		}, nil
 	default:
