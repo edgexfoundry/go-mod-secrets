@@ -13,7 +13,8 @@ user$ go build <exclude_delayed_start_service.go> -tags non_delayedstart
 ```
 
 ## Community
-- Chat: https://chat.edgexfoundry.org/home
+- Wiki: https://wiki.edgexfoundry.org/
+- Website: https://www.edgexfoundry.org/
 - Mailing lists: https://lists.edgexfoundry.org/mailman/listinfo
 
 ## License
