@@ -1,7 +1,7 @@
 module github.com/edgexfoundry/go-mod-secrets/v2
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.2.0-dev.27
+	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.2.0-dev.28
 	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/stretchr/testify v1.7.1
 )
