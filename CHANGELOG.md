@@ -3,6 +3,21 @@
 ## Secrets Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-secrets)
 
+## [v2.2.0] - 2022-05-11
+
+### Features ✨
+
+- **security:** implement runtime token provider GetRawToken client API call for obtaining secret store token ([#141](https://github.com/edgexfoundry/go-mod-secrets/issues/141)) ([#7ea7921](https://github.com/edgexfoundry/go-mod-secrets/commits/7ea7921))
+
+### Bug Fixes 🐛
+
+- close response Body when the returned error is nil ([#146](https://github.com/edgexfoundry/go-mod-secrets/issues/146)) ([#3ba02e4](https://github.com/edgexfoundry/go-mod-secrets/commits/3ba02e4))
+
+### Build 👷
+
+- **security:** Add go build tags for non-delayed start builds ([#144](https://github.com/edgexfoundry/go-mod-secrets/issues/144)) ([#8f104b7](https://github.com/edgexfoundry/go-mod-secrets/commits/8f104b7))
+- **security:** Enable gosec and default linter set ([#05e2b9d](https://github.com/edgexfoundry/go-mod-secrets/commits/05e2b9d))
+- 
 ## [2.1.0] - 2021-11-17
 
 ### Features ✨
