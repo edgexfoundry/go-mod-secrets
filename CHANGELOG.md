@@ -3,7 +3,10 @@
 ## Secrets Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-secrets)
 
-## [2.1.0] - 2021-11-17
+## [v2.1.1] - 2022-06-08
+### Bug Fixes 🐛
+- close response Body when the returned error is nil ([#146](https://github.com/edgexfoundry/go-mod-secrets/issues/146)) ([#152](https://github.com/edgexfoundry/go-mod-secrets/issues/152)) ([#9196965](https://github.com/edgexfoundry/go-mod-secrets/commits/9196965))
+## [v2.1.0] - 2021-11-17
 
 ### Features ✨
 
@@ -11,7 +14,7 @@
 
 - Add SecretsFile config setting ([#0a5a284](https://github.com/edgexfoundry/go-mod-secrets/commits/0a5a284))
 
-## [2.0.0] - 2021-06-30
+## [v2.0.0] - 2021-06-30
 ### Features ✨
 - **security:** Add GenerateConsulToken API to SecretClient interface ([#6432e0d](https://github.com/edgexfoundry/go-mod-secrets/commits/6432e0d))
 - **security:** Add Generate Registry Token API for secretstore client ([#5e2f4d4](https://github.com/edgexfoundry/go-mod-secrets/commits/5e2f4d4))
