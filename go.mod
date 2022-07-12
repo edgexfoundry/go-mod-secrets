@@ -1,5 +1,7 @@
 module github.com/edgexfoundry/go-mod-secrets/v2
 
+go 1.18
+
 require (
 	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.2.0
 	github.com/spiffe/go-spiffe/v2 v2.1.1
@@ -30,5 +32,3 @@ require (
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-go 1.17
