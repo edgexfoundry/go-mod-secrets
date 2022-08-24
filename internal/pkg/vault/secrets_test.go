@@ -381,6 +381,7 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
+	TestConnErrorPathNotFound := pkg.NewErrPathNotFound("testing path error")
 	testData := getTestSecretsData()
 	tests := []struct {
 		name              string
@@ -465,16 +466,17 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			},
 		},
 		{
-			name:              "Handle HTTP error",
+			name:              "Handle HTTP no path error",
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: TestConnError,
+			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
-				ReturnError: true,
+				ReturnError: false,
 				StatusCode:  404,
+				ErrorType:   pkg.NewErrPathNotFound("Not found"),
 			},
 		},
 		{
@@ -487,7 +489,8 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
 				ReturnError: false,
-				StatusCode:  404,
+				StatusCode:  400,
+				ErrorType:   pkg.NewErrSecretStore("Error"),
 			},
 		},
 		{
@@ -496,7 +499,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			keys:              []string{"one"},
 			expectedValues:    nil,
 			expectError:       true,
-			expectedErrorType: TestConnError,
+			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
 				Data: testData,
@@ -790,6 +793,7 @@ type ErrorMockCaller struct {
 	StatusCode  int
 	ReturnError bool
 	DoCallCount int
+	ErrorType   error
 }
 
 func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
@@ -797,7 +801,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 	if emc.ReturnError {
 		return &http.Response{
 			StatusCode: emc.StatusCode,
-		}, pkg.NewErrSecretStore("testing conn error")
+		}, emc.ErrorType
 	}
 
 	return &http.Response{
