@@ -45,9 +45,8 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testPath         = "/data"
-	testPathNotFound = "/path"
-	testNamespace    = "database"
+	testPath      = "/data"
+	testNamespace = "database"
 )
 
 func TestNewSecretsClient(t *testing.T) {
