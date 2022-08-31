@@ -461,14 +461,7 @@ func (c *Client) GetKeys(subPath string) ([]string, error) {
 		return nil, err
 	}
 
-	var validKeys []string
-	for _, key := range data {
-		if len(key) == strings.Index(key, "/")+1 || strings.Index(key, "/") < 1 {
-			validKeys = append(validKeys, key)
-		}
-	}
-
-	return validKeys, nil
+	return data, nil
 }
 
 // getAllKeys obtains all the keys that reside at the provided sub-path.
@@ -478,7 +471,7 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 		return nil, err
 	}
 
-	c.lc.Debug(fmt.Sprintf("Using Secrets URL of `%s`", url))
+	c.lc.Debugf("Using Secrets URL of `%s`", url)
 
 	req, err := http.NewRequest("LIST", url, nil)
 	if err != nil {

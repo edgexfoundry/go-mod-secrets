@@ -48,6 +48,7 @@ const (
 	testPath      = "/secret1"
 	testPath2     = "/secret2"
 	testPath3     = "/secret3"
+	testPath4     = ""
 	testNamespace = "database"
 )
 
@@ -390,7 +391,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		path              string
 		keys              []string
 		expectedValues    map[string]string
-		expectError       bool
 		expectedErrorType error
 		expectedDoCallNum int
 		caller            pkg.Caller
@@ -400,7 +400,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -412,7 +411,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -424,7 +422,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              nil,
 			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -436,7 +433,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -448,7 +444,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist", "Also does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -460,7 +455,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one", "Does not exist", "Also does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -472,7 +466,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
@@ -486,7 +479,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnError,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
@@ -500,7 +492,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              "/nonexistentpath",
 			keys:              []string{"one"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -512,7 +503,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              "bad path for URL",
 			keys:              []string{"one"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: errors.New(""),
 			caller: &InMemoryMockCaller{
 				Data: testData,
@@ -534,7 +524,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			}
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
-			if test.expectError {
+			if test.expectedErrorType != nil {
 				require.Error(t, err)
 
 				eet := reflect.TypeOf(test.expectedErrorType)
@@ -792,11 +782,11 @@ func getTestSecretsData() map[string]map[string]string {
 }
 
 func listTestSecretsKeysData() map[string]map[string]map[string][]string {
-
+	// The "testPath" result set defined below is also used in test cases for "GetKeys()".
 	return map[string]map[string]map[string][]string{
 		testPath: {
 			"data": {
-				"keys": {"one", "two", "three/", "four/one"},
+				"keys": {"one", "two", "three/", "four/"},
 			},
 		}, testPath2: {
 			"data": {
@@ -804,7 +794,12 @@ func listTestSecretsKeysData() map[string]map[string]map[string][]string {
 			},
 		}, testPath3: {
 			"data": {
-				"keys": {"four/one"},
+				"keys": {"four/"},
+			},
+		},
+		testPath4: {
+			"data": {
+				"keys": {"four/"},
 			},
 		},
 	}
@@ -869,7 +864,8 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			StatusCode: 200,
 		}, nil
 	case "LIST":
-		if req.URL.Path != testPath && req.URL.Path != testPath2 && req.URL.Path != testPath3 && req.URL.Path != "" {
+		acceptedPaths := listTestSecretsKeysData()
+		if _, ok := acceptedPaths[req.URL.Path]; !ok {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
@@ -960,13 +956,13 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		},
 		{
 			name:              "Get all Keys",
-			path:              "",
-			expectedValues:    []string{"one", "two", "three/"},
+			path:              testPath4,
+			expectedValues:    []string{"four/"},
 			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testPath],
+				DataList: testData[testPath4],
 			},
 		},
 		{
@@ -977,9 +973,8 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
-				ReturnError: false,
-				StatusCode:  404,
-				ErrorType:   pkg.NewErrPathNotFound("Not found"),
+				StatusCode: 404,
+				ErrorType:  pkg.NewErrPathNotFound("Not found"),
 			},
 		},
 		{
@@ -990,9 +985,8 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			expectedErrorType: TestConnError,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
-				ReturnError: false,
-				StatusCode:  400,
-				ErrorType:   pkg.NewErrSecretStore("Error"),
+				StatusCode: 400,
+				ErrorType:  pkg.NewErrSecretStore("Error"),
 			},
 		},
 		{
@@ -1025,13 +1019,13 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				Protocol:  "http",
 				Namespace: testNamespace,
 			}
-			ssm := Client{
+			client := Client{
 				Config:     cfgHTTP,
 				HttpCaller: test.caller,
 				lc:         logger.NewMockClient(),
 			}
 
-			actual, err := ssm.GetKeys(test.path)
+			actual, err := client.GetKeys(test.path)
 			if test.expectError {
 				require.Error(t, err)
 
