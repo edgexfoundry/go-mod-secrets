@@ -453,13 +453,22 @@ func (c *Client) store(subPath string, secrets map[string]string) error {
 	return nil
 }
 
-// GetKeys retrieves the keys at the provided sub-path.
+// GetKeys retrieves the keys at the provided sub-path. Secret Store returns an array of keys for a given path when
+// retrieving a list of keys, versus a k/v map when retrieving secrets.
 func (c *Client) GetKeys(subPath string) ([]string, error) {
 	data, err := c.getAllPaths(subPath)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	var validKeys []string
+	for _, key := range data {
+		if len(key) == strings.Index(key, "/")+1 || strings.Index(key, "/") < 1 {
+			validKeys = append(validKeys, key)
+		}
+	}
+
+	return validKeys, nil
 }
 
 // getAllKeys obtains all the keys that reside at the provided sub-path.
