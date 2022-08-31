@@ -789,6 +789,14 @@ func getTestSecretsData() map[string]map[string]string {
 	}
 }
 
+func getTestSecretsKeysData() map[string]map[string][]string {
+	return map[string]map[string][]string{
+		"data": {
+			"keys": {"one", "uno", "two", "dos", "three", "tres"},
+		},
+	}
+}
+
 type ErrorMockCaller struct {
 	StatusCode  int
 	ReturnError bool
@@ -812,6 +820,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 
 type InMemoryMockCaller struct {
 	Data                 map[string]map[string]string
+	DataList             map[string]map[string][]string
 	Result               map[string]string
 	DoCallCount          int
 	nErrorsReturned      int
@@ -846,7 +855,18 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
 			StatusCode: 200,
 		}, nil
-
+	case "LIST":
+		if req.URL.Path != testPath {
+			return &http.Response{
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				StatusCode: 404,
+			}, nil
+		}
+		r, _ := json.Marshal(caller.DataList)
+		return &http.Response{
+			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
+			StatusCode: 200,
+		}, nil
 	case http.MethodPost:
 		if req.URL.Path != testPath {
 			return &http.Response{
@@ -863,5 +883,175 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		}, nil
 	default:
 		return nil, errors.New("unsupported HTTP method")
+	}
+}
+
+func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
+	TestConnError := pkg.NewErrSecretStore("testing conn error")
+	TestConnErrorPathNotFound := pkg.NewErrPathNotFound("testing path error")
+	testData := getTestSecretsKeysData()
+	tests := []struct {
+		name              string
+		path              string
+		expectedValues    []string
+		expectError       bool
+		expectedErrorType error
+		expectedDoCallNum int
+		caller            pkg.Caller
+	}{
+		{
+			name:              "Get Key",
+			path:              testPath,
+			expectedValues:    []string{"one", "uno"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData,
+			},
+		},
+		{
+			name:              "Get Two Keys",
+			path:              testPath,
+			expectedValues:    []string{"one", "uno", "two", "dos"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData,
+			},
+		},
+		{
+			name:              "Get all keys",
+			path:              testPath,
+			expectedValues:    []string{"one", "uno", "two", "dos", "three", "tres"},
+			expectError:       false,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData,
+			},
+		},
+		{
+			name:              "Get non-existent Key",
+			path:              "/error",
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+				ErrorType:   pkg.NewErrPathNotFound("Does not exist"),
+			},
+		},
+		{
+			name:              "Get all non-existent Keys",
+			path:              testPath,
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+				ErrorType:   pkg.NewErrPathNotFound("Does not exist"),
+			},
+		},
+		{
+			name:              "Handle HTTP no path error",
+			path:              testPath,
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnErrorPathNotFound,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+				ErrorType:   pkg.NewErrPathNotFound("Not found"),
+			},
+		},
+		{
+			name:              "Handle non-200 HTTP response",
+			path:              testPath,
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  400,
+				ErrorType:   pkg.NewErrSecretStore("Error"),
+			},
+		},
+		{
+			name:              "Get Key with unknown path",
+			path:              "/nonexistentpath",
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: TestConnErrorPathNotFound,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData,
+			},
+		},
+		{
+			name:              "URL Error",
+			path:              "bad path for URL",
+			expectedValues:    nil,
+			expectError:       true,
+			expectedErrorType: errors.New(""),
+			caller: &InMemoryMockCaller{
+				DataList: testData,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := types.SecretConfig{
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
+			}
+			ssm := Client{
+				Config:     cfgHTTP,
+				HttpCaller: test.caller,
+				lc:         logger.NewMockClient(),
+			}
+
+			actual, err := ssm.GetKeys(test.path)
+			if test.expectError {
+				require.Error(t, err)
+
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
+
+				return
+			}
+
+			var mockType string
+			var callCount int
+			switch v := test.caller.(type) {
+			case *ErrorMockCaller:
+				mockType = "ErrorMockCaller"
+				callCount = v.DoCallCount
+			case *InMemoryMockCaller:
+				mockType = "InMemoryMockCaller"
+				callCount = v.DoCallCount
+			}
+
+			require.Equalf(t, test.expectedDoCallNum, callCount,
+				"Expected %d %s.Do calls, got %d", mockType, test.expectedDoCallNum, callCount)
+
+			for k, expected := range test.expectedValues {
+				if actual[k] != expected {
+					assert.Equalf(t, expected, actual[k], "Expected value '%s', but got '%s'", expected, actual[k])
+				}
+			}
+		})
 	}
 }
