@@ -46,6 +46,8 @@ const (
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
 	testPath      = "/secret1"
+	testPath2     = "/secret2"
+	testPath3     = "/secret3"
 	testNamespace = "database"
 )
 
@@ -789,10 +791,21 @@ func getTestSecretsData() map[string]map[string]string {
 	}
 }
 
-func listTestSecretsKeysData() map[string]map[string][]string {
-	return map[string]map[string][]string{
-		"data": {
-			"keys": {"secret1", "secret2", "secret3/", "secret4/secret1"},
+func listTestSecretsKeysData() map[string]map[string]map[string][]string {
+
+	return map[string]map[string]map[string][]string{
+		testPath: {
+			"data": {
+				"keys": {"one", "two", "three/", "four/one"},
+			},
+		}, testPath2: {
+			"data": {
+				"keys": {},
+			},
+		}, testPath3: {
+			"data": {
+				"keys": {"four/one"},
+			},
 		},
 	}
 }
@@ -856,7 +869,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			StatusCode: 200,
 		}, nil
 	case "LIST":
-		if req.URL.Path != testPath {
+		if req.URL.Path != testPath && req.URL.Path != testPath2 && req.URL.Path != testPath3 && req.URL.Path != "" {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
@@ -902,39 +915,39 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		{
 			name:              "Get Key",
 			path:              testPath,
-			expectedValues:    []string{"secret1"},
+			expectedValues:    []string{"one", "two", "three/"},
 			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData,
+				DataList: testData[testPath],
 			},
 		},
 		{
-			name:              "Get Two Keys",
-			path:              testPath,
-			expectedValues:    []string{"secret1", "secret2"},
+			name:              "No keys error",
+			path:              testPath2,
+			expectedValues:    []string{},
 			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData,
+				DataList: testData[testPath2],
 			},
 		},
 		{
-			name:              "Get all keys",
-			path:              testPath,
-			expectedValues:    []string{"secret1", "secret2", "secret3/"},
+			name:              "Subpath",
+			path:              testPath3,
+			expectedValues:    nil,
 			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData,
+				DataList: testData[testPath3],
 			},
 		},
 		{
 			name:              "Get non-existent Key",
-			path:              "/error",
+			path:              "/one",
 			expectedValues:    nil,
 			expectError:       true,
 			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
@@ -946,16 +959,14 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			},
 		},
 		{
-			name:              "Get all non-existent Keys",
-			path:              testPath,
-			expectedValues:    nil,
-			expectError:       true,
-			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
+			name:              "Get all Keys",
+			path:              "",
+			expectedValues:    []string{"one", "two", "three/"},
+			expectError:       false,
+			expectedErrorType: nil,
 			expectedDoCallNum: 1,
-			caller: &ErrorMockCaller{
-				ReturnError: false,
-				StatusCode:  404,
-				ErrorType:   pkg.NewErrPathNotFound("Does not exist"),
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath],
 			},
 		},
 		{
@@ -992,7 +1003,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData,
+				DataList: testData[testPath2],
 			},
 		},
 		{
@@ -1002,7 +1013,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			expectError:       true,
 			expectedErrorType: errors.New(""),
 			caller: &InMemoryMockCaller{
-				DataList: testData,
+				DataList: testData[testPath2],
 			},
 		},
 	}
@@ -1046,8 +1057,6 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 
 			require.Equalf(t, test.expectedDoCallNum, callCount,
 				"Expected %d %s.Do calls, got %d", mockType, test.expectedDoCallNum, callCount)
-			fmt.Println("a ", actual)
-			fmt.Println("ae ", test.expectedValues)
 			for k, expected := range test.expectedValues {
 				if actual[k] != expected {
 					assert.Equalf(t, expected, actual[k], "Expected value '%s', but got '%s'", expected, actual[k])
