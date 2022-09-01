@@ -98,6 +98,10 @@ func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string
 	return nil
 }
 
+func (mssm MockSecretClient) GetKeys(subPath string) ([]string, error) {
+	return nil, nil
+}
+
 func (mssm MockSecretClient) GetTokenDetails() (*types.TokenMetadata, error) {
 	return nil, nil
 }

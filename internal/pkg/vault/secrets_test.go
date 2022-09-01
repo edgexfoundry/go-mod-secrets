@@ -45,7 +45,10 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testPath      = "/data"
+	testPath      = "/secret1"
+	testPath2     = "/secret2"
+	testPath3     = "/secret3"
+	testPath4     = ""
 	testNamespace = "database"
 )
 
@@ -388,7 +391,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		path              string
 		keys              []string
 		expectedValues    map[string]string
-		expectError       bool
 		expectedErrorType error
 		expectedDoCallNum int
 		caller            pkg.Caller
@@ -398,7 +400,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -410,7 +411,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -422,7 +422,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              nil,
 			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
-			expectError:       false,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -434,7 +433,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -446,7 +444,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist", "Also does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -458,7 +455,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"one", "Does not exist", "Also does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -470,7 +466,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
@@ -484,7 +479,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              testPath,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnError,
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
@@ -498,7 +492,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              "/nonexistentpath",
 			keys:              []string{"one"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: TestConnErrorPathNotFound,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -510,7 +503,6 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			path:              "bad path for URL",
 			keys:              []string{"one"},
 			expectedValues:    nil,
-			expectError:       true,
 			expectedErrorType: errors.New(""),
 			caller: &InMemoryMockCaller{
 				Data: testData,
@@ -532,7 +524,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			}
 
 			actual, err := ssm.GetSecrets(test.path, test.keys...)
-			if test.expectError {
+			if test.expectedErrorType != nil {
 				require.Error(t, err)
 
 				eet := reflect.TypeOf(test.expectedErrorType)
@@ -789,6 +781,30 @@ func getTestSecretsData() map[string]map[string]string {
 	}
 }
 
+func listTestSecretsKeysData() map[string]map[string]map[string][]string {
+	// The "testPath" result set defined below is also used in test cases for "GetKeys()".
+	return map[string]map[string]map[string][]string{
+		testPath: {
+			"data": {
+				"keys": {"one", "two", "three/", "four/"},
+			},
+		}, testPath2: {
+			"data": {
+				"keys": {},
+			},
+		}, testPath3: {
+			"data": {
+				"keys": {"four/"},
+			},
+		},
+		testPath4: {
+			"data": {
+				"keys": {"four/"},
+			},
+		},
+	}
+}
+
 type ErrorMockCaller struct {
 	StatusCode  int
 	ReturnError bool
@@ -812,6 +828,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 
 type InMemoryMockCaller struct {
 	Data                 map[string]map[string]string
+	DataList             map[string]map[string][]string
 	Result               map[string]string
 	DoCallCount          int
 	nErrorsReturned      int
@@ -846,7 +863,19 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
 			StatusCode: 200,
 		}, nil
-
+	case "LIST":
+		acceptedPaths := listTestSecretsKeysData()
+		if _, ok := acceptedPaths[req.URL.Path]; !ok {
+			return &http.Response{
+				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				StatusCode: 404,
+			}, nil
+		}
+		r, _ := json.Marshal(caller.DataList)
+		return &http.Response{
+			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
+			StatusCode: 200,
+		}, nil
 	case http.MethodPost:
 		if req.URL.Path != testPath {
 			return &http.Response{
@@ -863,5 +892,160 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		}, nil
 	default:
 		return nil, errors.New("unsupported HTTP method")
+	}
+}
+
+func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
+	TestConnError := pkg.NewErrSecretStore("testing conn error")
+	TestConnErrorPathNotFound := pkg.NewErrPathNotFound("testing path error")
+	testData := listTestSecretsKeysData()
+	tests := []struct {
+		name              string
+		path              string
+		expectedValues    []string
+		expectedErrorType error
+		expectedDoCallNum int
+		caller            pkg.Caller
+	}{
+		{
+			name:              "Get Key",
+			path:              testPath,
+			expectedValues:    []string{"one", "two", "three/"},
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath],
+			},
+		},
+		{
+			name:              "No keys error",
+			path:              testPath2,
+			expectedValues:    []string{},
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath2],
+			},
+		},
+		{
+			name:              "Subpath",
+			path:              testPath3,
+			expectedValues:    nil,
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath3],
+			},
+		},
+		{
+			name:              "Get non-existent Key",
+			path:              "/one",
+			expectedValues:    nil,
+			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				ReturnError: false,
+				StatusCode:  404,
+				ErrorType:   pkg.NewErrPathNotFound("Does not exist"),
+			},
+		},
+		{
+			name:              "Get all Keys",
+			path:              testPath4,
+			expectedValues:    []string{"four/"},
+			expectedErrorType: nil,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath4],
+			},
+		},
+		{
+			name:              "Handle HTTP no path error",
+			path:              testPath,
+			expectedValues:    nil,
+			expectedErrorType: TestConnErrorPathNotFound,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				StatusCode: 404,
+				ErrorType:  pkg.NewErrPathNotFound("Not found"),
+			},
+		},
+		{
+			name:              "Handle non-200 HTTP response",
+			path:              testPath,
+			expectedValues:    nil,
+			expectedErrorType: TestConnError,
+			expectedDoCallNum: 1,
+			caller: &ErrorMockCaller{
+				StatusCode: 400,
+				ErrorType:  pkg.NewErrSecretStore("Error"),
+			},
+		},
+		{
+			name:              "Get Key with unknown path",
+			path:              "/nonexistentpath",
+			expectedValues:    nil,
+			expectedErrorType: TestConnErrorPathNotFound,
+			expectedDoCallNum: 1,
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath2],
+			},
+		},
+		{
+			name:              "URL Error",
+			path:              "bad path for URL",
+			expectedValues:    nil,
+			expectedErrorType: errors.New(""),
+			caller: &InMemoryMockCaller{
+				DataList: testData[testPath2],
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfgHTTP := types.SecretConfig{
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
+			}
+			client := Client{
+				Config:     cfgHTTP,
+				HttpCaller: test.caller,
+				lc:         logger.NewMockClient(),
+			}
+
+			actual, err := client.GetKeys(test.path)
+			if test.expectedErrorType != nil {
+				require.Error(t, err)
+
+				eet := reflect.TypeOf(test.expectedErrorType)
+				aet := reflect.TypeOf(err)
+				if !aet.AssignableTo(eet) {
+					t.Errorf("Expected error of type %v, but got an error of type %v", eet, aet)
+				}
+
+				return
+			}
+
+			var mockType string
+			var callCount int
+			switch v := test.caller.(type) {
+			case *ErrorMockCaller:
+				mockType = "ErrorMockCaller"
+				callCount = v.DoCallCount
+			case *InMemoryMockCaller:
+				mockType = "InMemoryMockCaller"
+				callCount = v.DoCallCount
+			}
+
+			require.Equalf(t, test.expectedDoCallNum, callCount,
+				"Expected %d %s.Do calls, got %d", mockType, test.expectedDoCallNum, callCount)
+			for k, expected := range test.expectedValues {
+				if actual[k] != expected {
+					assert.Equalf(t, expected, actual[k], "Expected value '%s', but got '%s'", expected, actual[k])
+				}
+			}
+		})
 	}
 }

@@ -452,3 +452,67 @@ func (c *Client) store(subPath string, secrets map[string]string) error {
 
 	return nil
 }
+
+// GetKeys retrieves the keys at the provided sub-path. Secret Store returns an array of keys for a given path when
+// retrieving a list of keys, versus a k/v map when retrieving secrets.
+func (c *Client) GetKeys(subPath string) ([]string, error) {
+	data, err := c.getAllPaths(subPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// getAllKeys obtains all the keys that reside at the provided sub-path.
+func (c *Client) getAllPaths(subPath string) ([]string, error) {
+	url, err := c.Config.BuildSecretsPathURL(subPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c.lc.Debugf("Using Secrets URL of `%s`", url)
+
+	req, err := http.NewRequest("LIST", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set(c.Config.Authentication.AuthType, c.Config.Authentication.AuthToken)
+
+	if c.Config.Namespace != "" {
+		req.Header.Set(NamespaceHeader, c.Config.Namespace)
+	}
+
+	resp, err := c.HttpCaller.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode == 404 {
+		return nil, pkg.NewErrPathNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
+	var result map[string]map[string][]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	data := result["data"]["keys"]
+	// Cast the keys to strings
+	var secretKeys []string
+	for _, v := range data {
+		secretKeys = append(secretKeys, v.(string))
+	}
+
+	return secretKeys, nil
+}
