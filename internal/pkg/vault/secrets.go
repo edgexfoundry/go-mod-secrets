@@ -487,8 +487,9 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 	resp, err := c.HttpCaller.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get all paths: %v", err)
 	}
+
 	defer func() {
 		_ = resp.Body.Close()
 	}()
@@ -501,18 +502,16 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 		return nil, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
-	var result map[string]map[string][]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	// Structure of the json data returned.
+	data := struct {
+		Data map[string][]string `json:"data"`
+	}{}
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		return nil, err
 	}
 
-	data := result["data"]["keys"]
-	// Cast the keys to strings
-	var secretKeys []string
-	for _, v := range data {
-		secretKeys = append(secretKeys, v.(string))
-	}
-
+	secretKeys := data.Data["keys"]
 	return secretKeys, nil
 }
