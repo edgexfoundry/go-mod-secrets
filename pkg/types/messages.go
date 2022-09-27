@@ -37,3 +37,9 @@ type TokenMetadata struct {
 	Renewable  bool     `json:"renewable"`
 	Ttl        int      `json:"ttl"` // in seconds
 }
+
+// BootStrapACLTokenInfo is the key portion of the response metadata from consulACLBootstrapAPI
+type BootStrapACLTokenInfo struct {
+	SecretID string   `json:"SecretID"`
+	Policies []Policy `json:"Policies"`
+}

@@ -70,4 +70,6 @@ type SecretStoreClient interface {
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
 	LookupToken(token string) (types.TokenMetadata, error)
 	RevokeToken(token string) error
+	ConfigureConsulAccess(secretStoreToken string, bootstrapACLToken string, consulHost string, consulPort int) error
+	CreateRole(secretStoreToken string, consulRole types.ConsulRole) error
 }
