@@ -193,3 +193,57 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 
 	return false, nil
 }
+
+// CreateRole creates a Consul role that can be used to generate Consul tokens
+// and part of elements for the role ties up with the Consul policies in which it dictates
+// the permission of accesses to the Consul kv store or agent etc.
+func (c *Client) CreateRole(secretStoreToken string, consulRole types.ConsulRole) error {
+	if len(secretStoreToken) == 0 {
+		return fmt.Errorf("required secret store token is empty")
+	}
+
+	if len(consulRole.RoleName) == 0 {
+		return fmt.Errorf("required Consul role name is empty")
+	}
+
+	createRoleURL := fmt.Sprintf(createConsulRoleVaultAPI, consulRole.RoleName)
+	c.lc.Debugf("configAccessURL: %s", createRoleURL)
+	_, err := c.doRequest(RequestArgs{
+		AuthToken:            secretStoreToken,
+		Method:               http.MethodPost,
+		Path:                 createRoleURL,
+		JSONObject:           &consulRole,
+		BodyReader:           nil,
+		OperationDescription: "create Role",
+		ExpectedStatusCode:   http.StatusNoContent,
+		ResponseObject:       nil,
+	})
+
+	return err
+}
+
+// ConfigureConsulAccess is to enable the Consul config access to the SecretStore via consul/config/access API
+// see the reference: https://www.vaultproject.io/api-docs/secret/consul#configure-access
+func (c *Client) ConfigureConsulAccess(secretStoreToken string, bootstrapACLToken string, consulHost string, consulPort int) error {
+	type ConfigAccess struct {
+		ConsulAddress     string `json:"address"`
+		BootstrapACLToken string `json:"token"`
+	}
+
+	payload := &ConfigAccess{
+		ConsulAddress:     fmt.Sprintf("%s:%d", consulHost, consulPort),
+		BootstrapACLToken: bootstrapACLToken,
+	}
+
+	_, err := c.doRequest(RequestArgs{
+		AuthToken:            secretStoreToken,
+		Method:               http.MethodPost,
+		Path:                 consulConfigAccessVaultAPI,
+		JSONObject:           &payload,
+		BodyReader:           nil,
+		OperationDescription: "Configure Consul Access",
+		ExpectedStatusCode:   http.StatusNoContent,
+		ResponseObject:       nil,
+	})
+	return err
+}

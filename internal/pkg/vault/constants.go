@@ -20,20 +20,22 @@ const (
 	NamespaceHeader = "X-Vault-Namespace"
 	AuthTypeHeader  = "X-Vault-Token"
 
-	HealthAPI              = "/v1/sys/health"
-	InitAPI                = "/v1/sys/init"
-	UnsealAPI              = "/v1/sys/unseal"
-	CreatePolicyPath       = "/v1/sys/policies/acl/%s"
-	CreateTokenAPI         = "/v1/auth/token/create"    // nolint: gosec
-	ListAccessorsAPI       = "/v1/auth/token/accessors" // nolint: gosec
-	RevokeAccessorAPI      = "/v1/auth/token/revoke-accessor"
-	LookupAccessorAPI      = "/v1/auth/token/lookup-accessor"
-	LookupSelfAPI          = "/v1/auth/token/lookup-self"
-	RevokeSelfAPI          = "/v1/auth/token/revoke-self"
-	RootTokenControlAPI    = "/v1/sys/generate-root/attempt" // nolint: gosec
-	RootTokenRetrievalAPI  = "/v1/sys/generate-root/update"  // nolint: gosec
-	MountsAPI              = "/v1/sys/mounts"
-	GenerateConsulTokenAPI = "/v1/consul/creds/%s" // nolint: gosec
+	HealthAPI                  = "/v1/sys/health"
+	InitAPI                    = "/v1/sys/init"
+	UnsealAPI                  = "/v1/sys/unseal"
+	CreatePolicyPath           = "/v1/sys/policies/acl/%s"
+	CreateTokenAPI             = "/v1/auth/token/create"    // nolint: gosec
+	ListAccessorsAPI           = "/v1/auth/token/accessors" // nolint: gosec
+	RevokeAccessorAPI          = "/v1/auth/token/revoke-accessor"
+	LookupAccessorAPI          = "/v1/auth/token/lookup-accessor"
+	LookupSelfAPI              = "/v1/auth/token/lookup-self"
+	RevokeSelfAPI              = "/v1/auth/token/revoke-self"
+	RootTokenControlAPI        = "/v1/sys/generate-root/attempt" // nolint: gosec
+	RootTokenRetrievalAPI      = "/v1/sys/generate-root/update"  // nolint: gosec
+	MountsAPI                  = "/v1/sys/mounts"
+	GenerateConsulTokenAPI     = "/v1/consul/creds/%s" // nolint: gosec
+	consulConfigAccessVaultAPI = "/v1/consul/config/access"
+	createConsulRoleVaultAPI   = "/v1/consul/roles/%s"
 
 	lookupSelfVaultAPI = "/v1/auth/token/lookup-self"
 	renewSelfVaultAPI  = "/v1/auth/token/renew-self"
