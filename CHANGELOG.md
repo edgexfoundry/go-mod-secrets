@@ -3,6 +3,22 @@
 ## Secrets Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-secrets)
 
+## Change Logs for EdgeX Dependencies
+
+- [go-mod-core-contracts](https://github.com/edgexfoundry/go-mod-core-contracts/blob/main/CHANGELOG.md)
+
+## [v2.3.0] - 2022-11-09
+
+### Features ✨
+
+- Add Consul access and role interface ([#163](https://github.com/edgexfoundry/go-mod-secrets/issues/163)) ([#7e745c8](https://github.com/edgexfoundry/go-mod-secrets/commits/7e745c8))
+- Add GetKey API ([#161](https://github.com/edgexfoundry/go-mod-secrets/issues/161)) ([#46e806f](https://github.com/edgexfoundry/go-mod-secrets/commits/46e806f))
+- Add error handling for status 404 ([#160](https://github.com/edgexfoundry/go-mod-secrets/issues/160)) ([#c185b68](https://github.com/edgexfoundry/go-mod-secrets/commits/c185b68))
+
+### Build 👷
+
+- Upgrade to Go 1.18 ([#995c520](https://github.com/edgexfoundry/go-mod-secrets/commits/995c520))
+
 ## [v2.2.0] - 2022-05-11
 
 ### Features ✨
