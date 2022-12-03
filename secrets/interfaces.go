@@ -52,6 +52,12 @@ type SecretClient interface {
 	// GetKeys retrieves the keys at the provided sub-path. Secret Store returns an array of keys for a given path when
 	// retrieving a list of keys, versus a k/v map when retrieving secrets.
 	GetKeys(subPath string) ([]string, error)
+
+	// GetSelfJWT returns an encoded JWT for the current identity-based secret store token
+	GetSelfJWT(serviceKey string) (string, error)
+
+	// IsJWTValid evaluates a given JWT and returns a true/false if the JWT is valid (i.e. belongs to us and current) or not
+	IsJWTValid(jwt string) (bool, error)
 }
 
 // SecretStoreClient provides a contract for managing a Secret Store from a secret store provider.
@@ -72,4 +78,17 @@ type SecretStoreClient interface {
 	RevokeToken(token string) error
 	ConfigureConsulAccess(secretStoreToken string, bootstrapACLToken string, consulHost string, consulPort int) error
 	CreateRole(secretStoreToken string, consulRole types.ConsulRole) error
+	CreateOrUpdateIdentity(token string, name string, metadata map[string]string, policies []string) (string, error)
+	DeleteIdentity(token string, name string) error
+	LookupIdentity(token string, name string) (string, error)
+	CheckAuthMethodEnabled(token string, mountPoint string, authType string) (bool, error)
+	EnablePasswordAuth(token string, mountPoint string) error
+	LookupAuthHandle(token string, mountPoint string) (string, error)
+	CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error
+	DeleteUser(token string, mountPoint string, username string) error
+	BindUserToIdentity(token string, identityId string, authHandle string, username string) error
+	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]interface{}, error)
+	CheckIdentityKeyExists(token string, keyName string) (bool, error)
+	CreateNamedIdentityKey(token string, keyName string, algorithm string) error
+	CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, jwtTTL string) error
 }

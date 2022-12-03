@@ -36,6 +36,14 @@ const (
 	GenerateConsulTokenAPI     = "/v1/consul/creds/%s" // nolint: gosec
 	consulConfigAccessVaultAPI = "/v1/consul/config/access"
 	createConsulRoleVaultAPI   = "/v1/consul/roles/%s"
+	namedEntityAPI             = "/v1/identity/entity/name"
+	entityAliasAPI             = "/v1/identity/entity-alias"
+	oidcKeyAPI                 = "/v1/identity/oidc/key"
+	oidcRoleAPI                = "/v1/identity/oidc/role"
+	oidcGetTokenAPI            = "/v1/identity/oidc/token"      // nolint: gosec
+	oidcTokenIntrospectAPI     = "/v1/identity/oidc/introspect" // nolint: gosec
+	authAPI                    = "/v1/sys/auth"
+	authMountBase              = "/v1/auth"
 
 	lookupSelfVaultAPI = "/v1/auth/token/lookup-self"
 	renewSelfVaultAPI  = "/v1/auth/token/renew-self"

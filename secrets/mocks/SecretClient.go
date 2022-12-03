@@ -87,6 +87,48 @@ func (_m *SecretClient) GetSecrets(subPath string, keys ...string) (map[string]s
 	return r0, r1
 }
 
+// GetSelfJWT provides a mock function with given fields: serviceKey
+func (_m *SecretClient) GetSelfJWT(serviceKey string) (string, error) {
+	ret := _m.Called(serviceKey)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(serviceKey)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(serviceKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IsJWTValid provides a mock function with given fields: jwt
+func (_m *SecretClient) IsJWTValid(jwt string) (bool, error) {
+	ret := _m.Called(jwt)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(jwt)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(jwt)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetAuthToken provides a mock function with given fields: ctx, token
 func (_m *SecretClient) SetAuthToken(ctx context.Context, token string) error {
 	ret := _m.Called(ctx, token)

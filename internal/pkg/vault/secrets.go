@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -514,4 +515,110 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 
 	secretKeys := data.Data["keys"]
 	return secretKeys, nil
+}
+
+// GetSelfJWT returns an encoded JWT for the current identity-based secret store token
+func (c *Client) GetSelfJWT(serviceKey string) (string, error) {
+	url, err := c.Config.BuildURL(path.Join(oidcGetTokenAPI, serviceKey))
+	if err != nil {
+		return "", err
+	}
+
+	c.lc.Debugf("Using identity request URL of `%s`", url)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set(c.Config.Authentication.AuthType, c.Config.Authentication.AuthToken)
+
+	if c.Config.Namespace != "" {
+		req.Header.Set(NamespaceHeader, c.Config.Namespace)
+	}
+
+	resp, err := c.HttpCaller.Do(req)
+
+	if err != nil {
+		return "", fmt.Errorf("unable to get all paths: %v", err)
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
+	// Structure of the json data returned.
+	data := struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}{}
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return "", err
+	}
+
+	token := data.Data.Token
+	return token, nil
+}
+
+// IsJWTValid evaluates a given JWT and returns a true/false if the JWT is valid (i.e. belongs to us and current) or not
+func (c *Client) IsJWTValid(jwt string) (bool, error) {
+	url, err := c.Config.BuildURL(oidcTokenIntrospectAPI)
+	if err != nil {
+		return false, err
+	}
+
+	c.lc.Debugf("Using introspection url URL of `%s`", url)
+
+	token := struct {
+		Token string `json:"token"`
+	}{Token: jwt}
+
+	payload, err := json.Marshal(token)
+	if err != nil {
+		return false, fmt.Errorf("Unable to marshal token introspect body")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set(c.Config.Authentication.AuthType, c.Config.Authentication.AuthToken)
+
+	if c.Config.Namespace != "" {
+		req.Header.Set(NamespaceHeader, c.Config.Namespace)
+	}
+
+	resp, err := c.HttpCaller.Do(req)
+
+	if err != nil {
+		return false, fmt.Errorf("unable to get all paths: %v", err)
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return false, pkg.NewErrSecretStore(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+	}
+
+	// Structure of the json data returned.
+	data := struct {
+		Active bool `json:"active"`
+	}{}
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return false, err
+	}
+
+	return data.Active, nil
 }
