@@ -17,7 +17,7 @@ package vault
 import (
 	"net/http"
 
-	"github.com/edgexfoundry/go-mod-secrets/v2/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
 )
 
 func (c *Client) CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error) {
