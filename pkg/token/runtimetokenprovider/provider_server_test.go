@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/edgexfoundry/go-mod-secrets/v2/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
 	"github.com/stretchr/testify/require"
 )
 
