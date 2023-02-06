@@ -13,6 +13,62 @@ type SecretStoreClient struct {
 	mock.Mock
 }
 
+// BindUserToIdentity provides a mock function with given fields: token, identityId, authHandle, username
+func (_m *SecretStoreClient) BindUserToIdentity(token string, identityId string, authHandle string, username string) error {
+	ret := _m.Called(token, identityId, authHandle, username)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
+		r0 = rf(token, identityId, authHandle, username)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CheckAuthMethodEnabled provides a mock function with given fields: token, mountPoint, authType
+func (_m *SecretStoreClient) CheckAuthMethodEnabled(token string, mountPoint string, authType string) (bool, error) {
+	ret := _m.Called(token, mountPoint, authType)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
+		r0 = rf(token, mountPoint, authType)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(token, mountPoint, authType)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CheckIdentityKeyExists provides a mock function with given fields: token, keyName
+func (_m *SecretStoreClient) CheckIdentityKeyExists(token string, keyName string) (bool, error) {
+	ret := _m.Called(token, keyName)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string, string) bool); ok {
+		r0 = rf(token, keyName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(token, keyName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CheckSecretEngineInstalled provides a mock function with given fields: token, mountPoint, engine
 func (_m *SecretStoreClient) CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error) {
 	ret := _m.Called(token, mountPoint, engine)
@@ -41,6 +97,69 @@ func (_m *SecretStoreClient) ConfigureConsulAccess(secretStoreToken string, boot
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, int) error); ok {
 		r0 = rf(secretStoreToken, bootstrapACLToken, consulHost, consulPort)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CreateNamedIdentityKey provides a mock function with given fields: token, keyName, algorithm
+func (_m *SecretStoreClient) CreateNamedIdentityKey(token string, keyName string, algorithm string) error {
+	ret := _m.Called(token, keyName, algorithm)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
+		r0 = rf(token, keyName, algorithm)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CreateOrUpdateIdentity provides a mock function with given fields: token, name, metadata, policies
+func (_m *SecretStoreClient) CreateOrUpdateIdentity(token string, name string, metadata map[string]string, policies []string) (string, error) {
+	ret := _m.Called(token, name, metadata, policies)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string, map[string]string, []string) string); ok {
+		r0 = rf(token, name, metadata, policies)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, map[string]string, []string) error); ok {
+		r1 = rf(token, name, metadata, policies)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateOrUpdateIdentityRole provides a mock function with given fields: token, roleName, keyName, template, jwtTTL
+func (_m *SecretStoreClient) CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, jwtTTL string) error {
+	ret := _m.Called(token, roleName, keyName, template, jwtTTL)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
+		r0 = rf(token, roleName, keyName, template, jwtTTL)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CreateOrUpdateUser provides a mock function with given fields: token, mountPoint, username, password, tokenTTL, tokenPolicies
+func (_m *SecretStoreClient) CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error {
+	ret := _m.Called(token, mountPoint, username, password, tokenTTL, tokenPolicies)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string, []string) error); ok {
+		r0 = rf(token, mountPoint, username, password, tokenTTL, tokenPolicies)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -85,6 +204,34 @@ func (_m *SecretStoreClient) CreateToken(token string, parameters map[string]int
 	return r0, r1
 }
 
+// DeleteIdentity provides a mock function with given fields: token, name
+func (_m *SecretStoreClient) DeleteIdentity(token string, name string) error {
+	ret := _m.Called(token, name)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(token, name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteUser provides a mock function with given fields: token, mountPoint, username
+func (_m *SecretStoreClient) DeleteUser(token string, mountPoint string, username string) error {
+	ret := _m.Called(token, mountPoint, username)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
+		r0 = rf(token, mountPoint, username)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // EnableConsulSecretEngine provides a mock function with given fields: token, mountPoint, defaultLeaseTTL
 func (_m *SecretStoreClient) EnableConsulSecretEngine(token string, mountPoint string, defaultLeaseTTL string) error {
 	ret := _m.Called(token, mountPoint, defaultLeaseTTL)
@@ -106,6 +253,20 @@ func (_m *SecretStoreClient) EnableKVSecretEngine(token string, mountPoint strin
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
 		r0 = rf(token, mountPoint, kvVersion)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// EnablePasswordAuth provides a mock function with given fields: token, mountPoint
+func (_m *SecretStoreClient) EnablePasswordAuth(token string, mountPoint string) error {
+	ret := _m.Called(token, mountPoint)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(token, mountPoint)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -169,6 +330,29 @@ func (_m *SecretStoreClient) InstallPolicy(token string, policyName string, poli
 	return r0
 }
 
+// InternalServiceLogin provides a mock function with given fields: token, authEngine, username, password
+func (_m *SecretStoreClient) InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]interface{}, error) {
+	ret := _m.Called(token, authEngine, username, password)
+
+	var r0 map[string]interface{}
+	if rf, ok := ret.Get(0).(func(string, string, string, string) map[string]interface{}); ok {
+		r0 = rf(token, authEngine, username, password)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(token, authEngine, username, password)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListTokenAccessors provides a mock function with given fields: token
 func (_m *SecretStoreClient) ListTokenAccessors(token string) ([]string, error) {
 	ret := _m.Called(token)
@@ -185,6 +369,48 @@ func (_m *SecretStoreClient) ListTokenAccessors(token string) ([]string, error) 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(token)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LookupAuthHandle provides a mock function with given fields: token, mountPoint
+func (_m *SecretStoreClient) LookupAuthHandle(token string, mountPoint string) (string, error) {
+	ret := _m.Called(token, mountPoint)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string) string); ok {
+		r0 = rf(token, mountPoint)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(token, mountPoint)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LookupIdentity provides a mock function with given fields: token, name
+func (_m *SecretStoreClient) LookupIdentity(token string, name string) (string, error) {
+	ret := _m.Called(token, name)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string) string); ok {
+		r0 = rf(token, name)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(token, name)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -114,6 +114,14 @@ func (mssm MockSecretClient) SetAuthToken(_ context.Context, _ string) error {
 	panic("SetAuthToken not implemented")
 }
 
+func (mssm MockSecretClient) GetSelfJWT(_ string) (string, error) {
+	panic("GetSelfJWT not implemented")
+}
+
+func (mssm MockSecretClient) IsJWTValid(_ string) (bool, error) {
+	panic("IsJWTValid not implemented")
+}
+
 func TestGetKeys(t *testing.T) {
 	testClient := newTestMockSecretClient()
 	tests := []struct {

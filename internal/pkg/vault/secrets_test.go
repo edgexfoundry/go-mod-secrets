@@ -750,7 +750,7 @@ type SimpleMockAuthHttpCaller struct {
 
 func (smhc *SimpleMockAuthHttpCaller) Do(req *http.Request) (*http.Response, error) {
 	switch req.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		if smhc.returnError {
 			return &http.Response{
 				StatusCode: smhc.statusCode,
@@ -1048,4 +1048,54 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHttpSecretStoreManager_GetSelfJWT(t *testing.T) {
+	authToken := "some-auth-token" // nolint:gosec
+	cfgHTTP := types.SecretConfig{
+		Host:      "localhost",
+		Port:      8080,
+		Protocol:  "http",
+		Namespace: testNamespace,
+		Authentication: types.AuthenticationInfo{
+			AuthType:  AuthTypeHeader,
+			AuthToken: authToken,
+		},
+	}
+	client := Client{
+		Config: cfgHTTP,
+		HttpCaller: &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 200, returnError: false,
+			returnResponse: `{"data":{"token":"some-jwt-token"}}`},
+		lc: logger.NewMockClient(),
+	}
+
+	actual, err := client.GetSelfJWT("my-service-key")
+	require.NoError(t, err)
+	require.Equal(t, "some-jwt-token", actual)
+}
+
+func TestHttpSecretStoreManager_IsJWTValid(t *testing.T) {
+	authToken := "some-auth-token" // nolint:gosec
+	cfgHTTP := types.SecretConfig{
+		Host:      "localhost",
+		Port:      8080,
+		Protocol:  "http",
+		Namespace: testNamespace,
+		Authentication: types.AuthenticationInfo{
+			AuthType:  AuthTypeHeader,
+			AuthToken: authToken,
+		},
+	}
+	client := Client{
+		Config: cfgHTTP,
+		HttpCaller: &SimpleMockAuthHttpCaller{
+			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 200, returnError: false,
+			returnResponse: `{"active":true}`},
+		lc: logger.NewMockClient(),
+	}
+
+	actual, err := client.IsJWTValid("some-jwt-token")
+	require.NoError(t, err)
+	require.Equal(t, true, actual)
 }

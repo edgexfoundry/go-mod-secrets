@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	KeyValue = "kv"
-	Consul   = "consul"
+	KeyValue                   = "kv"
+	Consul                     = "consul"
+	UsernamePasswordAuthMethod = "userpass"
 )
 
 // InitRequest contains a Vault init request regarding the Shamir Secret Sharing (SSS) parameters
@@ -74,7 +75,7 @@ type LookupAccessorRequest struct {
 	Accessor string `json:"accessor"`
 }
 
-// ListSecretEnginesResponse is the response to GET /v1/sys/mounts
+// ListSecretEnginesResponse is the response to GET /v1/sys/mounts (and /v1/sys/auth)
 type ListSecretEnginesResponse struct {
 	Data map[string]struct {
 		Type string `json:"type"`
@@ -110,4 +111,87 @@ type EnableSecretsEngineRequest struct {
 	Description string                `json:"description"`
 	Options     *SecretsEngineOptions `json:"options,omitempty"`
 	Config      *SecretsEngineConfig  `json:"config,omitempty"`
+}
+
+// CreateUpdateEntityRequest enables or updates a Vault Identity
+type CreateUpdateEntityRequest struct {
+	Metadata map[string]string `json:"metadata"`
+	Policies []string          `json:"policies"`
+}
+
+// JsonID
+type JsonID struct {
+	ID string `json:"id"`
+}
+
+// CreateUpdateEntityResponse is the response to CreateUpdateEntityRequest
+type CreateUpdateEntityResponse struct {
+	Data JsonID `json:"data"`
+}
+
+// ReadEntityByNameResponse is the response to get entity by name
+type ReadEntityByNameResponse struct {
+	Data JsonID `json:"data"`
+}
+
+// EnableAuthMethodRequest enables a Vault Identity authentication method
+type EnableAuthMethodRequest struct {
+	Type string `json:"type"`
+}
+
+// Accessor
+type Accessor struct {
+	Accessor string `json:"accessor"`
+}
+
+// ListAuthMethodsResponse is used to look up the accessor ID of an auth method
+type ListAuthMethodsResponse struct {
+	Data map[string]Accessor `json:"data"`
+}
+
+// CreateOrUpdateUserRequest is used to create a vault login
+type CreateOrUpdateUserRequest struct {
+	Password      string   `json:"password"`
+	TokenPeriod   string   `json:"token_period"`
+	TokenPolicies []string `json:"token_policies"`
+}
+
+// CreateOrUpdateUserResponse is the response to get entity by name
+type CreateOrUpdateUserResponse struct {
+	Data JsonID `json:"data"`
+}
+
+// CreateEntityAliasRequest is used to bind an authenticator to an identity
+type CreateEntityAliasRequest struct {
+	// Name is the username in the authenticator
+	Name string `json:"name"`
+	// CanonicalID is the entity ID
+	CanonicalID string `json:"canonical_id"`
+	// MountAccessor is the id if the auth engine to use
+	MountAccessor string `json:"mount_accessor"`
+}
+
+// UserPassLoginRequest is used to to log in an identity with the userpass auth engine
+type UserPassLoginRequest struct {
+	Password string `json:"password"`
+}
+
+// ListNamedKeysResponse is the response to LIST /v1/identity/oidc/key
+type ListNamedKeysResponse struct {
+	Data struct {
+		Keys []string `json:"keys"`
+	} `json:"data"`
+}
+
+// CreateNamedKeyRequest is the request to POST /v1/identity/oidc/key/:name:
+type CreateNamedKeyRequest struct {
+	AllowedClientIDs []string `json:"allowed_client_ids"`
+	Algorithm        string   `json:"algorithm"`
+}
+
+// CreateOrUpdateIdentityRoleRequest is the request to POST /v1/identity/oidc/role/:name
+type CreateOrUpdateIdentityRoleRequest struct {
+	Key      string  `json:"key"`
+	Template *string `json:"template,omitempty"`
+	TokenTTL string  `json:"ttl"`
 }

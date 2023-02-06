@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	url2 "net/url"
+	"path"
 	"strconv"
 	"testing"
 
@@ -504,6 +505,183 @@ func TestCreateRole(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateOrUpdateIdentity(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, path.Join(namedEntityAPI, "edgex-service"), r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body CreateUpdateEntityRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, body.Metadata["edgex-service"], "edgex-service")
+		require.Equal(t, body.Policies[0], "edgex-service-policy")
+
+		w.WriteHeader(http.StatusOK)
+		response := CreateUpdateEntityResponse{}
+		response.Data.ID = "someguid"
+		err = json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	theMap := make(map[string]string)
+	theMap["edgex-service"] = "edgex-service"
+	id, err := client.CreateOrUpdateIdentity(expectedToken, "edgex-service", theMap, []string{"edgex-service-policy"})
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, id, "someguid")
+}
+
+func TestLookupIdentity(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+		require.Equal(t, r.Method, http.MethodGet)
+		require.Equal(t, path.Join(namedEntityAPI, "edgex-service"), r.URL.EscapedPath())
+
+		w.WriteHeader(http.StatusOK)
+		response := ReadEntityByNameResponse{}
+		response.Data.ID = "someguid"
+		err := json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	theMap := make(map[string]string)
+	theMap["edgex-service"] = "edgex-service"
+	id, err := client.LookupIdentity(expectedToken, "edgex-service")
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, id, "someguid")
+}
+
+func TestEnablePasswordAuth(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, path.Join(authAPI, "userauth"), r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body EnableAuthMethodRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, body.Type, UsernamePasswordAuthMethod)
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.EnablePasswordAuth(expectedToken, "userauth")
+
+	// Assert
+	require.NoError(t, err)
+}
+
+func TestLookupAuthHandle(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, authAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		w.WriteHeader(http.StatusOK)
+		response := ListAuthMethodsResponse{Data: make(map[string]Accessor)}
+		response.Data["userauth/"] = Accessor{Accessor: "someguid"}
+		err := json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	id, err := client.LookupAuthHandle(expectedToken, "userauth")
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, id, "someguid")
+}
+
+func TestCreateOrUpdateUser(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, path.Join(authMountBase, "userauth", "users", "username"), r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body CreateOrUpdateUserRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, body.Password, "somepassword")
+		require.Equal(t, body.TokenPeriod, "1h")
+		require.Equal(t, body.TokenPolicies, []string{"a", "b"})
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.CreateOrUpdateUser(expectedToken, "userauth", "username", "somepassword", "1h", []string{"a", "b"})
+
+	// Assert
+	require.NoError(t, err)
+}
+
+func TestBindUserToIdentity(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, entityAliasAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		var body CreateEntityAliasRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, err)
+		require.Equal(t, body.Name, "username")
+		require.Equal(t, body.CanonicalID, "identityid")
+		require.Equal(t, body.MountAccessor, "authhandle")
+
+		w.WriteHeader(http.StatusOK)
+		// Don't care about the response at this time
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	err := client.BindUserToIdentity(expectedToken, "identityid", "authhandle", "username")
+
+	// Assert
+	require.NoError(t, err)
 }
 
 func createClient(t *testing.T, url string, lc logger.LoggingClient) *Client {

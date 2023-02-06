@@ -82,7 +82,6 @@ func (c *Client) doRequest(params RequestArgs) (int, error) {
 
 	if resp.StatusCode != params.ExpectedStatusCode {
 		err := fmt.Errorf("request to %s failed with status: %s", params.OperationDescription, resp.Status)
-		c.lc.Error(err.Error())
 		return resp.StatusCode, err
 	}
 
