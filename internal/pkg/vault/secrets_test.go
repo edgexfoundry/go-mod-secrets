@@ -384,7 +384,7 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 
 func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
-	TestConnErrorPathNotFound := pkg.NewErrPathNotFound("testing path error")
+	TestConnErrorPathNotFound := pkg.NewErrSecretNameNotFound("testing path error")
 	testData := getTestSecretsData()
 	tests := []struct {
 		name              string
@@ -471,7 +471,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 			caller: &ErrorMockCaller{
 				ReturnError: false,
 				StatusCode:  404,
-				ErrorType:   pkg.NewErrPathNotFound("Not found"),
+				ErrorType:   pkg.NewErrSecretNameNotFound("Not found"),
 			},
 		},
 		{
@@ -897,7 +897,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 
 func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
-	TestConnErrorPathNotFound := pkg.NewErrPathNotFound("testing path error")
+	TestConnErrorPathNotFound := pkg.NewErrSecretNameNotFound("testing path error")
 	testData := listTestSecretsKeysData()
 	tests := []struct {
 		name              string
@@ -941,12 +941,12 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			name:              "Get non-existent Key",
 			path:              "/one",
 			expectedValues:    nil,
-			expectedErrorType: pkg.NewErrPathNotFound("Does not exist"),
+			expectedErrorType: pkg.NewErrSecretNameNotFound("Does not exist"),
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
 				ReturnError: false,
 				StatusCode:  404,
-				ErrorType:   pkg.NewErrPathNotFound("Does not exist"),
+				ErrorType:   pkg.NewErrSecretNameNotFound("Does not exist"),
 			},
 		},
 		{
@@ -967,7 +967,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			expectedDoCallNum: 1,
 			caller: &ErrorMockCaller{
 				StatusCode: 404,
-				ErrorType:  pkg.NewErrPathNotFound("Not found"),
+				ErrorType:  pkg.NewErrSecretNameNotFound("Not found"),
 			},
 		},
 		{

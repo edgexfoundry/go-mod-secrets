@@ -376,7 +376,7 @@ func (c *Client) getAllKeys(subPath string) (map[string]string, error) {
 	}()
 
 	if resp.StatusCode == 404 {
-		return nil, pkg.NewErrPathNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		return nil, pkg.NewErrSecretNameNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -496,7 +496,7 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 	}()
 
 	if resp.StatusCode == 404 {
-		return nil, pkg.NewErrPathNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		return nil, pkg.NewErrSecretNameNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
