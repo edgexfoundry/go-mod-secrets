@@ -34,13 +34,13 @@ func (_m *SecretClient) GenerateConsulToken(serviceKey string) (string, error) {
 	return r0, r1
 }
 
-// GetKeys provides a mock function with given fields: subPath
-func (_m *SecretClient) GetKeys(subPath string) ([]string, error) {
-	ret := _m.Called(subPath)
+// GetKeys provides a mock function with given fields: secretName
+func (_m *SecretClient) GetKeys(secretName string) ([]string, error) {
+	ret := _m.Called(secretName)
 
 	var r0 []string
 	if rf, ok := ret.Get(0).(func(string) []string); ok {
-		r0 = rf(subPath)
+		r0 = rf(secretName)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
@@ -49,7 +49,7 @@ func (_m *SecretClient) GetKeys(subPath string) ([]string, error) {
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(subPath)
+		r1 = rf(secretName)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -57,20 +57,20 @@ func (_m *SecretClient) GetKeys(subPath string) ([]string, error) {
 	return r0, r1
 }
 
-// GetSecrets provides a mock function with given fields: subPath, keys
-func (_m *SecretClient) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
+// GetSecrets provides a mock function with given fields: secretName, keys
+func (_m *SecretClient) GetSecrets(secretName string, keys ...string) (map[string]string, error) {
 	_va := make([]interface{}, len(keys))
 	for _i := range keys {
 		_va[_i] = keys[_i]
 	}
 	var _ca []interface{}
-	_ca = append(_ca, subPath)
+	_ca = append(_ca, secretName)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
 	var r0 map[string]string
 	if rf, ok := ret.Get(0).(func(string, ...string) map[string]string); ok {
-		r0 = rf(subPath, keys...)
+		r0 = rf(secretName, keys...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string]string)
@@ -79,7 +79,7 @@ func (_m *SecretClient) GetSecrets(subPath string, keys ...string) (map[string]s
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
-		r1 = rf(subPath, keys...)
+		r1 = rf(secretName, keys...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -143,13 +143,13 @@ func (_m *SecretClient) SetAuthToken(ctx context.Context, token string) error {
 	return r0
 }
 
-// StoreSecrets provides a mock function with given fields: subPath, _a1
-func (_m *SecretClient) StoreSecrets(subPath string, _a1 map[string]string) error {
-	ret := _m.Called(subPath, _a1)
+// StoreSecrets provides a mock function with given fields: secretName, _a1
+func (_m *SecretClient) StoreSecrets(secretName string, _a1 map[string]string) error {
+	ret := _m.Called(secretName, _a1)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, map[string]string) error); ok {
-		r0 = rf(subPath, _a1)
+		r0 = rf(secretName, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -33,7 +33,7 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testPath = "/data"
+	testSecretName = "/data"
 )
 
 func newTestMockSecretClient() MockSecretClient {
@@ -53,8 +53,8 @@ type MockSecretClient struct {
 	secretStore *map[string]string
 }
 
-func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string]string, error) {
-	if path != testPath {
+func (mssm MockSecretClient) GetSecrets(secretName string, keys ...string) (map[string]string, error) {
+	if secretName != testSecretName {
 		return nil, pkg.NewErrSecretsNotFound(keys)
 	}
 
@@ -77,9 +77,9 @@ func (mssm MockSecretClient) GetSecrets(path string, keys ...string) (map[string
 	return secrets, nil
 }
 
-func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string) error {
-	if path != testPath {
-		return pkg.NewErrSecretStore(fmt.Sprintf("incorrect path for storing secrets: %s", path))
+func (mssm MockSecretClient) StoreSecrets(secretName string, secrets map[string]string) error {
+	if secretName != testSecretName {
+		return pkg.NewErrSecretStore(fmt.Sprintf("incorrect secretName for storing secrets: %s", secretName))
 	}
 
 	// sanity check before store secrets
@@ -98,7 +98,7 @@ func (mssm MockSecretClient) StoreSecrets(path string, secrets map[string]string
 	return nil
 }
 
-func (mssm MockSecretClient) GetKeys(subPath string) ([]string, error) {
+func (mssm MockSecretClient) GetKeys(secretName string) ([]string, error) {
 	return nil, nil
 }
 
@@ -127,7 +127,7 @@ func TestGetKeys(t *testing.T) {
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
-		path              string
+		secretName              string
 		keys              []string
 		expectedResult    map[string]string
 		expectError       bool
@@ -136,16 +136,16 @@ func TestGetKeys(t *testing.T) {
 		{
 			name:              "Get keys",
 			client:            testClient,
-			path:              testPath,
+			secretName:              testSecretName,
 			keys:              []string{"one", "two"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
 			expectedErrorType: nil,
 		},
 		{
-			name:              "Get keys from unknown path",
+			name:              "Get keys from unknown secretName",
 			client:            testClient,
-			path:              "/unknownpath",
+			secretName:              "/unknownsecretName",
 			keys:              []string{"one", "two"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -154,7 +154,7 @@ func TestGetKeys(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.path, test.keys)
+			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.secretName, test.keys)
 			actual, err := c.GetKeys()
 
 			if test.expectError && err == nil {
@@ -190,7 +190,7 @@ func TestStoreSecrets(t *testing.T) {
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
-		path              string
+		secretName              string
 		secrets           map[string]string
 		expectedResult    map[string]string
 		expectError       bool
@@ -199,7 +199,7 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store one secret",
 			client:            testClient,
-			path:              testPath,
+			secretName:              testSecretName,
 			secrets:           map[string]string{"one": "uno"},
 			expectedResult:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -208,25 +208,25 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store secrets",
 			client:            testClient,
-			path:              testPath,
+			secretName:              testSecretName,
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
 			expectedErrorType: nil,
 		},
 		{
-			name:              "Store secrets from unknown path",
+			name:              "Store secrets from unknown secretName",
 			client:            testClient,
-			path:              "/unknownpath",
+			secretName:              "/unknownsecretName",
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    nil,
 			expectError:       true,
-			expectedErrorType: pkg.NewErrSecretStore("incorrect path for storing secrets: /unknownpath"),
+			expectedErrorType: pkg.NewErrSecretStore("incorrect secretName for storing secrets: /unknownsecretName"),
 		},
 		{
 			name:              "Store one invalid empty key of secret",
 			client:            testClient,
-			path:              testPath,
+			secretName:              testSecretName,
 			secrets:           map[string]string{"": "empty"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -235,7 +235,7 @@ func TestStoreSecrets(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.path, nil)
+			c := NewInMemoryCacheListener(test.client, make(chan map[string]string), make(chan error), []int{0}, test.secretName, nil)
 			err := c.SetSecrets(test.secrets)
 
 			if test.expectError && err == nil {
@@ -270,7 +270,7 @@ func TestStoreSecrets(t *testing.T) {
 
 func TestGetKeysError(t *testing.T) {
 	testClient := newTestMockSecretClient()
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), []int{0}, testPath, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), []int{0}, testSecretName, []string{"doesNotExist"})
 	_, err := c.GetKeys()
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -288,7 +288,7 @@ func TestGetKeysError(t *testing.T) {
 func TestErrorPropagation(t *testing.T) {
 	testClient := newTestMockSecretClient()
 	errChan := make(chan error)
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), errChan, []int{0}, testPath, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), errChan, []int{0}, testSecretName, []string{"doesNotExist"})
 
 	err := c.Start()
 	if err != nil {
@@ -306,7 +306,7 @@ func TestErrorPropagation(t *testing.T) {
 
 func TestStopStateCheck(t *testing.T) {
 	testClient := newTestMockSecretClient()
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testSecretName, []string{"one"})
 	err := c.Stop()
 	if err == nil {
 		t.Errorf("Expected error for invalid state")
@@ -323,7 +323,7 @@ func TestStopStateCheck(t *testing.T) {
 
 func TestStartStateCheck(t *testing.T) {
 	testClient := newTestMockSecretClient()
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testSecretName, []string{"one"})
 	err := c.Start()
 	if err != nil {
 		t.Errorf("Unexpected error occurred: %s", err.Error())
@@ -355,7 +355,7 @@ func TestNoUpdate(t *testing.T) {
 	testClient := newTestMockSecretClient()
 	errChan := make(chan error)
 	updateChan := make(chan map[string]string)
-	c := NewInMemoryCacheListener(testClient, updateChan, errChan, []int{0}, testPath, []string{"one", "two"})
+	c := NewInMemoryCacheListener(testClient, updateChan, errChan, []int{0}, testSecretName, []string{"one", "two"})
 	_, err := c.GetKeys()
 	if err != nil {
 		t.Errorf("Unexpected error occurred: %s", err.Error())
@@ -388,7 +388,7 @@ func TestBackoffPattern(t *testing.T) {
 	numOfTries := len(backoffPattern) + 1
 
 	completeChan := make(chan struct{})
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), backoffPattern, testPath, []string{"doesNotExist"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error, 10), backoffPattern, testSecretName, []string{"doesNotExist"})
 
 	// Warp the Timer constructor with some verification logic so we can validate that the underlying timer is being
 	// invoked with the correct intervals.
@@ -438,7 +438,7 @@ func TestStateConcurrency(t *testing.T) {
 	testClient := newTestMockSecretClient()
 
 	numOfRestarts := 600
-	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testPath, []string{"one"})
+	c := NewInMemoryCacheListener(testClient, make(chan map[string]string), make(chan error), []int{0}, testSecretName, []string{"one"})
 
 	// Create 2 go-routines which will restart the listener concurrently to test the thread-safety of the state
 	// modifications.
