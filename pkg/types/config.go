@@ -27,7 +27,7 @@ type SecretConfig struct {
 	Host string
 	Port int
 	// Path is the base path to the secret's location in the secret store
-	Path string
+	SecretName string
 	// SecretsFile is path to optional JSON file containing secrets to seed into service's SecretStore
 	SecretsFile    string
 	Protocol       string
@@ -47,7 +47,7 @@ func (c SecretConfig) BuildURL(path string) (string, error) {
 // BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
 // subPath is the location of the secrets in the secrets engine
 func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
-	return c.BuildURL(c.Path + subPath)
+	return c.BuildURL(c.SecretName + subPath)
 }
 
 // IsRuntimeProviderEnabled returns whether the token provider is using runtime token mechanism

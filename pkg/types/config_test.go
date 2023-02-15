@@ -23,14 +23,14 @@ import (
 
 func TestBuildUrl(t *testing.T) {
 	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
-	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/ping"}
-	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", Path: "/api/v1/ping/"}
-	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", Path: ""}
-	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", Path: ""}
-	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", Path: "/api/v1/ping/"}
-	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", Path: "/api/v1/ping/"}
-	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", Path: "/api/v1/ping/"}
-	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", Path: ""}
+	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", SecretName: "/ping"}
+	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", SecretName: "/api/v1/ping/"}
+	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", SecretName: ""}
+	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", SecretName: ""}
+	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", SecretName: "/api/v1/ping/"}
+	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", SecretName: "/api/v1/ping/"}
+	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", SecretName: "/api/v1/ping/"}
+	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", SecretName: ""}
 
 	tests := []struct {
 		name        string
@@ -51,7 +51,7 @@ func TestBuildUrl(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			val, err := test.cfg.BuildURL(test.cfg.Path)
+			val, err := test.cfg.BuildURL(test.cfg.SecretName)
 			if test.expectError {
 				require.Error(t, err)
 				return
