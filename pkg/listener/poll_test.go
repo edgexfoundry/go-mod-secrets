@@ -53,7 +53,7 @@ type MockSecretClient struct {
 	secretStore *map[string]string
 }
 
-func (mssm MockSecretClient) GetSecrets(secretName string, keys ...string) (map[string]string, error) {
+func (mssm MockSecretClient) GetSecret(secretName string, keys ...string) (map[string]string, error) {
 	if secretName != testSecretName {
 		return nil, pkg.NewErrSecretsNotFound(keys)
 	}
@@ -77,7 +77,7 @@ func (mssm MockSecretClient) GetSecrets(secretName string, keys ...string) (map[
 	return secrets, nil
 }
 
-func (mssm MockSecretClient) StoreSecrets(secretName string, secrets map[string]string) error {
+func (mssm MockSecretClient) StoreSecret(secretName string, secrets map[string]string) error {
 	if secretName != testSecretName {
 		return pkg.NewErrSecretStore(fmt.Sprintf("incorrect secretName for storing secrets: %s", secretName))
 	}
@@ -127,7 +127,7 @@ func TestGetKeys(t *testing.T) {
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
-		secretName              string
+		secretName        string
 		keys              []string
 		expectedResult    map[string]string
 		expectError       bool
@@ -136,7 +136,7 @@ func TestGetKeys(t *testing.T) {
 		{
 			name:              "Get keys",
 			client:            testClient,
-			secretName:              testSecretName,
+			secretName:        testSecretName,
 			keys:              []string{"one", "two"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -145,7 +145,7 @@ func TestGetKeys(t *testing.T) {
 		{
 			name:              "Get keys from unknown secretName",
 			client:            testClient,
-			secretName:              "/unknownsecretName",
+			secretName:        "/unknownsecretName",
 			keys:              []string{"one", "two"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -190,7 +190,7 @@ func TestStoreSecrets(t *testing.T) {
 	tests := []struct {
 		name              string
 		client            secrets.SecretClient
-		secretName              string
+		secretName        string
 		secrets           map[string]string
 		expectedResult    map[string]string
 		expectError       bool
@@ -199,7 +199,7 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store one secret",
 			client:            testClient,
-			secretName:              testSecretName,
+			secretName:        testSecretName,
 			secrets:           map[string]string{"one": "uno"},
 			expectedResult:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -208,7 +208,7 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store secrets",
 			client:            testClient,
-			secretName:              testSecretName,
+			secretName:        testSecretName,
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -217,7 +217,7 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store secrets from unknown secretName",
 			client:            testClient,
-			secretName:              "/unknownsecretName",
+			secretName:        "/unknownsecretName",
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -226,7 +226,7 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store one invalid empty key of secret",
 			client:            testClient,
-			secretName:              testSecretName,
+			secretName:        testSecretName,
 			secrets:           map[string]string{"": "empty"},
 			expectedResult:    nil,
 			expectError:       true,

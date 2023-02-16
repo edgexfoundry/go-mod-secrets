@@ -18,19 +18,20 @@ package types
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuildUrl(t *testing.T) {
 	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
-	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", SecretName: "/ping"}
-	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", SecretName: "/api/v1/ping/"}
-	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", SecretName: ""}
-	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", SecretName: ""}
-	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", SecretName: "/api/v1/ping/"}
-	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", SecretName: "/api/v1/ping/"}
-	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", SecretName: "/api/v1/ping/"}
-	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", SecretName: ""}
+	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", StoreBasePath: "/ping"}
+	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
+	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", StoreBasePath: ""}
+	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", StoreBasePath: ""}
+	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
+	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
+	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", StoreBasePath: "/api/v1/ping/"}
+	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", StoreBasePath: ""}
 
 	tests := []struct {
 		name        string
@@ -38,7 +39,7 @@ func TestBuildUrl(t *testing.T) {
 		path        string
 		expectError bool
 	}{
-		{"Valid - No Path", cfgNoPath, "http://localhost:8080", false},
+		{"Valid - No Path", cfgNoPath, "http://localhost:8080/", false},
 		{"Valid - With Path", cfgWithPath, "http://localhost:8080/ping", false},
 		{"Valid - With Trailing Slash", cfgWithTrailingSlash, "http://localhost:8080/api/v1/ping", false},
 		{"Invalid - No Host", cfgWithNoHost, "", true},
@@ -51,16 +52,14 @@ func TestBuildUrl(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			val, err := test.cfg.BuildURL(test.cfg.SecretName)
+			val, err := test.cfg.BuildURL(test.cfg.StoreBasePath)
 			if test.expectError {
 				require.Error(t, err)
 				return
 			}
 
 			require.NoError(t, err)
-			if val != test.path {
-				t.Errorf("%s unexpected path %s", test.name, val)
-			}
+			assert.Equal(t, test.path, val)
 		})
 	}
 }

@@ -50,8 +50,8 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 	return vaultClient, err
 }
 
-// GetSecrets retrieves the secrets at the provided secretName that matches the specified keys.
-func (c *Client) GetSecrets(secretName string, keys ...string) (map[string]string, error) {
+// GetSecret retrieves the secret at the provided secretName that matches the specified keys.
+func (c *Client) GetSecret(secretName string, keys ...string) (map[string]string, error) {
 
 	// no need to retry now as the secret store should be ready as the security bootstrapper starts in sequence now
 	data, err := c.getAllKeys(secretName)
@@ -84,8 +84,8 @@ func (c *Client) GetSecrets(secretName string, keys ...string) (map[string]strin
 	return values, nil
 }
 
-// StoreSecrets stores the secrets at the provided sub-path for the specified keys.
-func (c *Client) StoreSecrets(secretName string, secrets map[string]string) error {
+// StoreSecret stores the secret at the provided secret name for the specified keys.
+func (c *Client) StoreSecret(secretName string, secrets map[string]string) error {
 	// this interface acting as facade, just calling the internal store func on the client
 	return c.store(secretName, secrets)
 }

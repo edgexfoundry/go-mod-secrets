@@ -26,8 +26,8 @@ type SecretConfig struct {
 	Type string
 	Host string
 	Port int
-	// Path is the base path to the secret's location in the secret store
-	SecretName string
+	// StoreBasePath is the base path to the secret's location in the secret store
+	StoreBasePath string
 	// SecretsFile is path to optional JSON file containing secrets to seed into service's SecretStore
 	SecretsFile    string
 	Protocol       string
@@ -47,7 +47,11 @@ func (c SecretConfig) BuildURL(path string) (string, error) {
 // BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
 // subPath is the location of the secrets in the secrets engine
 func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
-	return c.BuildURL(c.SecretName + subPath)
+	return c.BuildURL(fmt.Sprintf("%s/%s", c.StoreBasePath, subPath))
+}
+
+func (c SecretConfig) BuildRequestPathURL(subPath string) (string, error) {
+	return c.BuildURL(fmt.Sprintf("%s%s", c.StoreBasePath, subPath))
 }
 
 // IsRuntimeProviderEnabled returns whether the token provider is using runtime token mechanism
@@ -81,6 +85,9 @@ func (provider RuntimeTokenProviderInfo) BuildProviderURL(path string) (string, 
 func buildURL(protocol, host, path string, portNum int) (string, error) {
 	// Make sure there is not a trailing slash
 	path = strings.TrimSuffix(path, "/")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
 
 	if len(protocol) == 0 {
 		return "", fmt.Errorf("unable to build URL: Protocol not set. Please check configuration settings")
@@ -95,7 +102,7 @@ func buildURL(protocol, host, path string, portNum int) (string, error) {
 	}
 
 	builtUrl := fmt.Sprintf("%s://%s:%v%s", protocol, host, portNum, path)
-	_, err := url.Parse(builtUrl)
+	_, err := url.Parse(builtUrl) //if there is '/' before path, it will succeed, this cause bad url to be true
 	if err != nil {
 		return "", fmt.Errorf(
 			"URL '%s' built from settings is invalid: %s. Please check you configuration settings",

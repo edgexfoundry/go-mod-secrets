@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,10 +46,10 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testSecretName  = "/secret1"
-	testSecretName2 = "/secret2"
-	testSecretName3 = "/secret3"
-	testSecretName4 = ""
+	testSecretName  = "secret1"
+	testSecretName2 = "secret2"
+	testSecretName3 = "secret3"
+	testSecretName4 = "secret4"
 	testNamespace   = "database"
 )
 
@@ -382,7 +383,7 @@ func TestConcurrentSecretClientTokenRenewals(t *testing.T) {
 	time.Sleep(2 * time.Second)
 }
 
-func TestHttpSecretStoreManager_GetValue(t *testing.T) {
+func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
 	TestConnErrorSecretNameNotFound := pkg.NewErrSecretNameNotFound("testing secretName error")
 	testData := getTestSecretsData()
@@ -489,7 +490,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 		},
 		{
 			name:              "Get Key with unknown secretName",
-			secretName:        "/nonexistentSecretName",
+			secretName:        "nonexistentSecretName",
 			keys:              []string{"one"},
 			expectedValues:    nil,
 			expectedErrorType: TestConnErrorSecretNameNotFound,
@@ -498,24 +499,16 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				Data: testData,
 			},
 		},
-		{
-			name:              "URL Error",
-			secretName:        "bad secretName for URL",
-			keys:              []string{"one"},
-			expectedValues:    nil,
-			expectedErrorType: errors.New(""),
-			caller: &InMemoryMockCaller{
-				Data: testData,
-			},
-		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:      "localhost",
-				Port:      8080,
-				Protocol:  "http",
-				Namespace: testNamespace,
+				Host:          "localhost",
+				Port:          8080,
+				Protocol:      "http",
+				Namespace:     testNamespace,
+				StoreBasePath: "test-service",
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
@@ -523,7 +516,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 				lc:         logger.NewMockClient(),
 			}
 
-			actual, err := ssm.GetSecrets(test.secretName, test.keys...)
+			actual, err := ssm.GetSecret(test.secretName, test.keys...)
 			if test.expectedErrorType != nil {
 				require.Error(t, err)
 
@@ -559,7 +552,7 @@ func TestHttpSecretStoreManager_GetValue(t *testing.T) {
 	}
 }
 
-func TestHttpSecretStoreManager_SetValue(t *testing.T) {
+func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
 	testData := getTestSecretsData()
 	tests := []struct {
@@ -611,7 +604,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 		},
 		{
 			name:              "Set One Secret with unknown secretName",
-			secretName:        "/nonexistentSecretName",
+			secretName:        "nonexistentSecretName",
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -621,26 +614,16 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				Data: testData,
 			},
 		},
-		{
-			name:              "URL Error",
-			secretName:        "bad secretName for URL",
-			secrets:           map[string]string{"one": "uno"},
-			expectedValues:    nil,
-			expectError:       true,
-			expectedErrorType: errors.New(""),
-			caller: &InMemoryMockCaller{
-				Data: testData,
-			},
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:      "localhost",
-				Port:      8080,
-				Protocol:  "http",
-				Namespace: testNamespace,
+				Host:          "localhost",
+				Port:          8080,
+				Protocol:      "http",
+				Namespace:     testNamespace,
+				StoreBasePath: "test-service",
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
@@ -648,7 +631,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				lc:         logger.NewMockClient(),
 			}
 
-			err := ssm.StoreSecrets(test.secretName, test.secrets)
+			err := ssm.StoreSecret(test.secretName, test.secrets)
 
 			if test.expectError {
 				require.Error(t, err)
@@ -681,7 +664,7 @@ func TestHttpSecretStoreManager_SetValue(t *testing.T) {
 				keys = append(keys, k)
 			}
 
-			actual, err := ssm.GetSecrets(test.secretName, keys...)
+			actual, err := ssm.GetSecret(test.secretName, keys...)
 			require.NoError(t, err)
 			for k, expected := range test.expectedValues {
 				assert.Equalf(t, expected, actual[k],
@@ -788,11 +771,13 @@ func listTestSecretsKeysData() map[string]map[string]map[string][]string {
 			"data": {
 				"keys": {"one", "two", "three/", "four/"},
 			},
-		}, testSecretName2: {
+		},
+		testSecretName2: {
 			"data": {
 				"keys": {},
 			},
-		}, testSecretName3: {
+		},
+		testSecretName3: {
 			"data": {
 				"keys": {"four/"},
 			},
@@ -850,9 +835,10 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		return nil, errors.New("namespace header is expected but not present in request")
 	}
 
+	var testSecretName_with_prefix = "/test-service" + "/" + testSecretName
 	switch req.Method {
 	case http.MethodGet:
-		if req.URL.Path != testSecretName {
+		if req.URL.Path != testSecretName_with_prefix {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
@@ -864,8 +850,10 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			StatusCode: 200,
 		}, nil
 	case "LIST":
+		// req.URL.Path = /secret1, but the listTestSecretsKeysData doesn't have "/" infront of keyname
 		acceptedPaths := listTestSecretsKeysData()
-		if _, ok := acceptedPaths[req.URL.Path]; !ok {
+		path := strings.Replace(req.URL.Path, "/test-service/", "", 1)
+		if _, ok := acceptedPaths[path]; !ok {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
@@ -877,7 +865,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			StatusCode: 200,
 		}, nil
 	case http.MethodPost:
-		if req.URL.Path != testSecretName {
+		if req.URL.Path != testSecretName_with_prefix {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
@@ -939,7 +927,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		},
 		{
 			name:              "Get non-existent Key",
-			secretName:        "/one",
+			secretName:        "one",
 			expectedValues:    nil,
 			expectedErrorType: pkg.NewErrSecretNameNotFound("Does not exist"),
 			expectedDoCallNum: 1,
@@ -983,7 +971,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		},
 		{
 			name:              "Get Key with unknown secretName",
-			secretName:        "/nonexistentSecretName",
+			secretName:        "nonexistentSecretName",
 			expectedValues:    nil,
 			expectedErrorType: TestConnErrorSecretNameNotFound,
 			expectedDoCallNum: 1,
@@ -991,23 +979,16 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				DataList: testData[testSecretName2],
 			},
 		},
-		{
-			name:              "URL Error",
-			secretName:        "bad secretName for URL",
-			expectedValues:    nil,
-			expectedErrorType: errors.New(""),
-			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName2],
-			},
-		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:      "localhost",
-				Port:      8080,
-				Protocol:  "http",
-				Namespace: testNamespace,
+				Host:          "localhost",
+				Port:          8080,
+				Protocol:      "http",
+				Namespace:     testNamespace,
+				StoreBasePath: "test-service",
 			}
 			client := Client{
 				Config:     cfgHTTP,
@@ -1026,6 +1007,11 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				}
 
 				return
+			}
+
+			require.NoError(t, err)
+			if len(test.expectedValues) > 0 {
+				require.NotEmpty(t, actual)
 			}
 
 			var mockType string

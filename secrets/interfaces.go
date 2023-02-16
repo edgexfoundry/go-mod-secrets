@@ -23,19 +23,18 @@ import (
 
 // SecretClient provides a contract for storing and retrieving secrets from a secret store provider.
 type SecretClient interface {
-	// GetSecrets retrieves secrets from a secret store.
-	// secretName specifies the type or location of the secrets to retrieve. If specified it is appended
+	// GetSecret retrieves secret from a secret store.
+	// secretName specifies the type or location of the secret to retrieve. If specified it is appended
 	// to the base path from the SecretConfig
-	// keys specifies the secrets which to retrieve. If no keys are provided then all the keys associated with the
+	// keys specifies the secret data to retrieve. If no keys are provided then all the keys associated with the
 	// specified path will be returned.
-	GetSecrets(secretName string, keys ...string) (map[string]string, error)
+	GetSecret(secretName string, keys ...string) (map[string]string, error)
 
-	// StoreSecrets stores the secrets to a secret store.
+	// StoreSecret stores the secret to a secret store.
 	// it sets the values requested at provided keys
-	// secretName specifies the type or location of the secrets to store. If specified it is appended
-	// to the base path from the SecretConfig
-	// secrets map specifies the "key": "value" pairs of secrets to store
-	StoreSecrets(secretName string, secrets map[string]string) error
+	// secretName specifies the type or location of the secret to store.
+	// data map specifies the "key": "value" pairs of secret data to store
+	StoreSecret(secretName string, data map[string]string) error
 
 	// GenerateConsulToken generates a new Consul token based on the given serviceKey
 	// it uses a secret store token from config and requires the permission to generate a Consul token
