@@ -37,32 +37,6 @@ func (_m *SecretClient) GenerateConsulToken(serviceKey string) (string, error) {
 	return r0, r1
 }
 
-// GetSecretNames provides a mock function with given fields: secretName
-func (_m *SecretClient) GetSecretNames(secretName string) ([]string, error) {
-	ret := _m.Called(secretName)
-
-	var r0 []string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) ([]string, error)); ok {
-		return rf(secretName)
-	}
-	if rf, ok := ret.Get(0).(func(string) []string); ok {
-		r0 = rf(secretName)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(secretName)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetSecret provides a mock function with given fields: secretName, keys
 func (_m *SecretClient) GetSecret(secretName string, keys ...string) (map[string]string, error) {
 	_va := make([]interface{}, len(keys))
@@ -89,6 +63,32 @@ func (_m *SecretClient) GetSecret(secretName string, keys ...string) (map[string
 
 	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
 		r1 = rf(secretName, keys...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSecretNames provides a mock function with given fields:
+func (_m *SecretClient) GetSecretNames() ([]string, error) {
+	ret := _m.Called()
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func() ([]string, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
