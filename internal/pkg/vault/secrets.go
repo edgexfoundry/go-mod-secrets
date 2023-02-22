@@ -54,7 +54,7 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 func (c *Client) GetSecret(secretName string, keys ...string) (map[string]string, error) {
 
 	// no need to retry now as the secret store should be ready as the security bootstrapper starts in sequence now
-	data, err := c.getAllKeys(secretName)
+	data, err := c.getSecretData(secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -347,9 +347,9 @@ func (c *Client) renewToken() error {
 	return nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided secretName.
-func (c *Client) getAllKeys(secretName string) (map[string]string, error) {
-	url, err := c.Config.BuildSecretsPathURL(secretName)
+// getSecretData obtains all the keys that reside at the provided secretName.
+func (c *Client) getSecretData(secretName string) (map[string]string, error) {
+	url, err := c.Config.BuildSecretNameURL(secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -395,12 +395,12 @@ func (c *Client) getAllKeys(secretName string) (map[string]string, error) {
 	}
 
 	// Cast the secret values to strings
-	secretKeyValues := make(map[string]string)
+	secretData := make(map[string]string)
 	for k, v := range data {
-		secretKeyValues[k] = v.(string)
+		secretData[k] = v.(string)
 	}
 
-	return secretKeyValues, nil
+	return secretData, nil
 }
 
 func isForbidden(err error) bool {
@@ -416,7 +416,7 @@ func (c *Client) store(secretName string, secrets map[string]string) error {
 		return nil
 	}
 
-	url, err := c.Config.BuildSecretsPathURL(secretName)
+	url, err := c.Config.BuildSecretNameURL(secretName)
 	if err != nil {
 		return err
 	}
@@ -454,10 +454,10 @@ func (c *Client) store(secretName string, secrets map[string]string) error {
 	return nil
 }
 
-// GetKeys retrieves the keys at the provided secretName. Secret Store returns an array of keys for a given secretName when
+// GetSecretNames retrieves the keys at the provided secretName. Secret Store returns an array of keys for a given secretName when
 // retrieving a list of keys, versus a k/v map when retrieving secrets.
-func (c *Client) GetKeys(secretName string) ([]string, error) {
-	data, err := c.getAllPaths(secretName)
+func (c *Client) GetSecretNames(secretName string) ([]string, error) {
+	data, err := c.getAllKeyNames(secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -465,9 +465,9 @@ func (c *Client) GetKeys(secretName string) ([]string, error) {
 	return data, nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided secretName.
-func (c *Client) getAllPaths(secretName string) ([]string, error) {
-	url, err := c.Config.BuildSecretsPathURL(secretName)
+// getAllKeyNames obtains all the keys that reside at the provided secretName.
+func (c *Client) getAllKeyNames(secretName string) ([]string, error) {
+	url, err := c.Config.BuildSecretNameURL(secretName)
 	if err != nil {
 		return nil, err
 	}

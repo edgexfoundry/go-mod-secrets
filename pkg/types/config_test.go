@@ -24,14 +24,14 @@ import (
 
 func TestBuildUrl(t *testing.T) {
 	cfgNoPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http"}
-	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", StoreBasePath: "/ping"}
-	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
-	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", StoreBasePath: ""}
-	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", StoreBasePath: ""}
-	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
-	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", StoreBasePath: "/api/v1/ping/"}
-	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", StoreBasePath: "/api/v1/ping/"}
-	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", StoreBasePath: ""}
+	cfgWithPath := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", BasePath: "/ping"}
+	cfgWithTrailingSlash := SecretConfig{Host: "localhost", Port: 8080, Protocol: "http", BasePath: "/api/v1/ping/"}
+	cfgWithNoHost := SecretConfig{Host: "", Port: 8080, Protocol: "http", BasePath: ""}
+	cfgWithInvalidHost := SecretConfig{Host: "not valid", Port: 8080, Protocol: "http", BasePath: ""}
+	cfgWithUnsetPort := SecretConfig{Host: "", Port: 0, Protocol: "http", BasePath: "/api/v1/ping/"}
+	cfgWithInvalidPort := SecretConfig{Host: "", Port: 9999, Protocol: "http", BasePath: "/api/v1/ping/"}
+	cfgWithNoProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "", BasePath: "/api/v1/ping/"}
+	cfgWithInvalidProtocol := SecretConfig{Host: "localhost", Port: 8080, Protocol: "234", BasePath: ""}
 
 	tests := []struct {
 		name        string
@@ -52,7 +52,7 @@ func TestBuildUrl(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			val, err := test.cfg.BuildURL(test.cfg.StoreBasePath)
+			val, err := test.cfg.BuildURL(test.cfg.BasePath)
 			if test.expectError {
 				require.Error(t, err)
 				return

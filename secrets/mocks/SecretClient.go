@@ -37,8 +37,8 @@ func (_m *SecretClient) GenerateConsulToken(serviceKey string) (string, error) {
 	return r0, r1
 }
 
-// GetKeys provides a mock function with given fields: secretName
-func (_m *SecretClient) GetKeys(secretName string) ([]string, error) {
+// GetSecretNames provides a mock function with given fields: secretName
+func (_m *SecretClient) GetSecretNames(secretName string) ([]string, error) {
 	ret := _m.Called(secretName)
 
 	var r0 []string

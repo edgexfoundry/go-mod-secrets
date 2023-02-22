@@ -33,7 +33,7 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testSecretName = "/data"
+	testSecretName = "data"
 )
 
 func newTestMockSecretClient() MockSecretClient {
@@ -98,7 +98,7 @@ func (mssm MockSecretClient) StoreSecret(secretName string, secrets map[string]s
 	return nil
 }
 
-func (mssm MockSecretClient) GetKeys(secretName string) ([]string, error) {
+func (mssm MockSecretClient) GetSecretNames(secretName string) ([]string, error) {
 	return nil, nil
 }
 
@@ -145,7 +145,7 @@ func TestGetKeys(t *testing.T) {
 		{
 			name:              "Get keys from unknown secretName",
 			client:            testClient,
-			secretName:        "/unknownsecretName",
+			secretName:        "unknownsecretName",
 			keys:              []string{"one", "two"},
 			expectedResult:    nil,
 			expectError:       true,
@@ -217,11 +217,11 @@ func TestStoreSecrets(t *testing.T) {
 		{
 			name:              "Store secrets from unknown secretName",
 			client:            testClient,
-			secretName:        "/unknownsecretName",
+			secretName:        "unknownsecretName",
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedResult:    nil,
 			expectError:       true,
-			expectedErrorType: pkg.NewErrSecretStore("incorrect secretName for storing secrets: /unknownsecretName"),
+			expectedErrorType: pkg.NewErrSecretStore("incorrect secretName for storing secrets: unknownsecretName"),
 		},
 		{
 			name:              "Store one invalid empty key of secret",

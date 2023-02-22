@@ -48,9 +48,9 @@ type SecretClient interface {
 	// SetAuthToken sets the internal Auth Token with the new value specified.
 	SetAuthToken(ctx context.Context, token string) error
 
-	// GetKeys retrieves the keys at the provided secretName. Secret Store returns an array of keys for a given secretName when
+	// GetSecretNames retrieves the keys at the provided secretName. Secret Store returns an array of keys for a given secretName when
 	// retrieving a list of keys, versus a k/v map when retrieving secrets.
-	GetKeys(secretName string) ([]string, error)
+	GetSecretNames(secretName string) ([]string, error)
 
 	// GetSelfJWT returns an encoded JWT for the current identity-based secret store token
 	GetSelfJWT(serviceKey string) (string, error)

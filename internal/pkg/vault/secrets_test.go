@@ -504,11 +504,11 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:          "localhost",
-				Port:          8080,
-				Protocol:      "http",
-				Namespace:     testNamespace,
-				StoreBasePath: "test-service",
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
+				BasePath:  "test-service",
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
@@ -619,11 +619,11 @@ func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:          "localhost",
-				Port:          8080,
-				Protocol:      "http",
-				Namespace:     testNamespace,
-				StoreBasePath: "test-service",
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
+				BasePath:  "test-service",
 			}
 			ssm := Client{
 				Config:     cfgHTTP,
@@ -769,7 +769,7 @@ func listTestSecretsKeysData() map[string]map[string]map[string][]string {
 	return map[string]map[string]map[string][]string{
 		testSecretName: {
 			"data": {
-				"keys": {"one", "two", "three/", "four/"},
+				"keys": {"one", "two", "three", "four"},
 			},
 		},
 		testSecretName2: {
@@ -779,12 +779,12 @@ func listTestSecretsKeysData() map[string]map[string]map[string][]string {
 		},
 		testSecretName3: {
 			"data": {
-				"keys": {"four/"},
+				"keys": {"four"},
 			},
 		},
 		testSecretName4: {
 			"data": {
-				"keys": {"four/"},
+				"keys": {"four"},
 			},
 		},
 	}
@@ -897,7 +897,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		{
 			name:              "Get Key",
 			secretName:        testSecretName,
-			expectedValues:    []string{"one", "two", "three/"},
+			expectedValues:    []string{"one", "two", "three"},
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -939,7 +939,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		{
 			name:              "Get all Keys",
 			secretName:        testSecretName4,
-			expectedValues:    []string{"four/"},
+			expectedValues:    []string{"four"},
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
@@ -983,11 +983,11 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfgHTTP := types.SecretConfig{
-				Host:          "localhost",
-				Port:          8080,
-				Protocol:      "http",
-				Namespace:     testNamespace,
-				StoreBasePath: "test-service",
+				Host:      "localhost",
+				Port:      8080,
+				Protocol:  "http",
+				Namespace: testNamespace,
+				BasePath:  "test-service",
 			}
 			client := Client{
 				Config:     cfgHTTP,
@@ -995,7 +995,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				lc:         logger.NewMockClient(),
 			}
 
-			actual, err := client.GetKeys(test.secretName)
+			actual, err := client.GetSecretNames(test.secretName)
 			if test.expectedErrorType != nil {
 				require.Error(t, err)
 

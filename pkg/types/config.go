@@ -26,8 +26,8 @@ type SecretConfig struct {
 	Type string
 	Host string
 	Port int
-	// StoreBasePath is the base path to the secret's location in the secret store
-	StoreBasePath string
+	// BasePath is the base path to the secret's location in the secret store
+	BasePath string
 	// SecretsFile is path to optional JSON file containing secrets to seed into service's SecretStore
 	SecretsFile    string
 	Protocol       string
@@ -44,14 +44,15 @@ func (c SecretConfig) BuildURL(path string) (string, error) {
 	return buildURL(c.Protocol, c.Host, path, c.Port)
 }
 
-// BuildSecretsPathURL constructs a URL to the service's secret with in it's secret store
+// BuildSecretNameURL constructs a URL to the service's secret with in it's secret store
 // secretName is the name of the secret in the service's secret store
-func (c SecretConfig) BuildSecretsPathURL(secretName string) (string, error) {
-	return c.BuildURL(fmt.Sprintf("%s/%s", c.StoreBasePath, secretName))
+func (c SecretConfig) BuildSecretNameURL(secretName string) (string, error) {
+	return c.BuildURL(fmt.Sprintf("%s/%s", c.BasePath, secretName))
 }
 
-func (c SecretConfig) BuildRequestPathURL(subPath string) (string, error) {
-	return c.BuildURL(fmt.Sprintf("%s%s", c.StoreBasePath, subPath))
+// BuildRequestURL constructs a request URL for send the a request to the secrets engine
+func (c SecretConfig) BuildRequestURL(subPath string) (string, error) {
+	return c.BuildURL(fmt.Sprintf("%s%s", c.BasePath, subPath))
 }
 
 // IsRuntimeProviderEnabled returns whether the token provider is using runtime token mechanism
