@@ -850,7 +850,6 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 			StatusCode: 200,
 		}, nil
 	case "LIST":
-		// req.URL.Path = /secret1, but the listTestSecretsKeysData doesn't have "/" infront of keyname
 		acceptedPaths := listTestSecretsKeysData()
 		path := strings.Replace(req.URL.Path, "/test-service/", "", 1)
 		if _, ok := acceptedPaths[path]; !ok {

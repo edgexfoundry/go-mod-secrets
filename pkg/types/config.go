@@ -44,10 +44,10 @@ func (c SecretConfig) BuildURL(path string) (string, error) {
 	return buildURL(c.Protocol, c.Host, path, c.Port)
 }
 
-// BuildSecretsPathURL constructs a URL which can be used to identify a secret's path
-// subPath is the location of the secrets in the secrets engine
-func (c SecretConfig) BuildSecretsPathURL(subPath string) (string, error) {
-	return c.BuildURL(fmt.Sprintf("%s/%s", c.StoreBasePath, subPath))
+// BuildSecretsPathURL constructs a URL to the service's secret with in it's secret store
+// secretName is the name of the secret in the service's secret store
+func (c SecretConfig) BuildSecretsPathURL(secretName string) (string, error) {
+	return c.BuildURL(fmt.Sprintf("%s/%s", c.StoreBasePath, secretName))
 }
 
 func (c SecretConfig) BuildRequestPathURL(subPath string) (string, error) {
@@ -102,7 +102,7 @@ func buildURL(protocol, host, path string, portNum int) (string, error) {
 	}
 
 	builtUrl := fmt.Sprintf("%s://%s:%v%s", protocol, host, portNum, path)
-	_, err := url.Parse(builtUrl) //if there is '/' before path, it will succeed, this cause bad url to be true
+	_, err := url.Parse(builtUrl)
 	if err != nil {
 		return "", fmt.Errorf(
 			"URL '%s' built from settings is invalid: %s. Please check you configuration settings",
