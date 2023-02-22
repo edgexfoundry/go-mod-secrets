@@ -46,11 +46,11 @@ const (
 	// define as constants to avoid using global variables as global variables are evil to the whole package level scope:
 	// Global variables can cause side effects which are difficult to keep track of. A code in one function may
 	// change the variables state while another unrelated chunk of code may be affected by it.
-	testSecretName  = "secret1"
-	testSecretName2 = "secret2"
-	testSecretName3 = "secret3"
-	testSecretName4 = "secret4"
-	testNamespace   = "database"
+	testName      = "secret1"
+	testName2     = "secret2"
+	testName3     = "secret3"
+	testName4     = "secret4"
+	testNamespace = "database"
 )
 
 func TestNewSecretsClient(t *testing.T) {
@@ -398,7 +398,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 	}{
 		{
 			name:              "Get Key",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"one"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectedErrorType: nil,
@@ -409,7 +409,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Get Two Keys",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"one", "two"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectedErrorType: nil,
@@ -420,7 +420,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Get all keys",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              nil,
 			expectedValues:    map[string]string{"one": "uno", "two": "dos", "three": "tres"},
 			expectedErrorType: nil,
@@ -431,7 +431,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Get non-existent Key",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist"}),
@@ -442,7 +442,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Get all non-existent Keys",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
@@ -453,7 +453,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Get some non-existent Keys",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"one", "Does not exist", "Also does not exist"},
 			expectedValues:    nil,
 			expectedErrorType: pkg.NewErrSecretsNotFound([]string{"Does not exist", "Also does not exist"}),
@@ -464,7 +464,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Handle HTTP no secretName error",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectedErrorType: TestConnErrorSecretNameNotFound,
@@ -477,7 +477,7 @@ func TestHttpSecretStoreManager_GetSecret(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
-			secretName:        testSecretName,
+			secretName:        testName,
 			keys:              []string{"Does not exist"},
 			expectedValues:    nil,
 			expectedErrorType: TestConnError,
@@ -567,7 +567,7 @@ func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 	}{
 		{
 			name:              "Set One Secret",
-			secretName:        testSecretName,
+			secretName:        testName,
 			secrets:           map[string]string{"one": "uno"},
 			expectedValues:    map[string]string{"one": "uno"},
 			expectError:       false,
@@ -579,7 +579,7 @@ func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 		},
 		{
 			name:              "Set Multiple Secrets",
-			secretName:        testSecretName,
+			secretName:        testName,
 			secrets:           map[string]string{"one": "uno", "two": "dos"},
 			expectedValues:    map[string]string{"one": "uno", "two": "dos"},
 			expectError:       false,
@@ -591,7 +591,7 @@ func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
-			secretName:        testSecretName,
+			secretName:        testName,
 			secrets:           map[string]string{"": "empty"},
 			expectedValues:    nil,
 			expectError:       true,
@@ -767,22 +767,22 @@ func getTestSecretsData() map[string]map[string]string {
 func listTestSecretsKeysData() map[string]map[string]map[string][]string {
 	// The "secretName" result set defined below is also used in test cases for "GetKeys()".
 	return map[string]map[string]map[string][]string{
-		testSecretName: {
+		testName: {
 			"data": {
 				"keys": {"one", "two", "three", "four"},
 			},
 		},
-		testSecretName2: {
+		testName2: {
 			"data": {
 				"keys": {},
 			},
 		},
-		testSecretName3: {
+		testName3: {
 			"data": {
 				"keys": {"four"},
 			},
 		},
-		testSecretName4: {
+		testName4: {
 			"data": {
 				"keys": {"four"},
 			},
@@ -835,7 +835,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		return nil, errors.New("namespace header is expected but not present in request")
 	}
 
-	var testSecretName_with_prefix = "/test-service" + "/" + testSecretName
+	var testSecretName_with_prefix = "/test-service" + "/" + testName
 	switch req.Method {
 	case http.MethodGet:
 		if req.URL.Path != testSecretName_with_prefix {
@@ -851,7 +851,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		}, nil
 	case "LIST":
 		acceptedPaths := listTestSecretsKeysData()
-		path := strings.Replace(req.URL.Path, "/test-service/", "", 1)
+		path := strings.Replace(req.URL.Path, "/", "", 1)
 		if _, ok := acceptedPaths[path]; !ok {
 			return &http.Response{
 				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
@@ -882,51 +882,51 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 	}
 }
 
-func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
+func TestHttpSecretStoreManager_GetSecretNames(t *testing.T) {
 	TestConnError := pkg.NewErrSecretStore("testing conn error")
 	TestConnErrorSecretNameNotFound := pkg.NewErrSecretNameNotFound("testing secretName error")
 	testData := listTestSecretsKeysData()
 	tests := []struct {
 		name              string
-		secretName        string
+		basePath          string
 		expectedValues    []string
 		expectedErrorType error
 		expectedDoCallNum int
 		caller            pkg.Caller
 	}{
 		{
-			name:              "Get Key",
-			secretName:        testSecretName,
+			name:              "Get three names",
+			basePath:          testName,
 			expectedValues:    []string{"one", "two", "three"},
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName],
+				DataList: testData[testName],
 			},
 		},
 		{
-			name:              "No keys error",
-			secretName:        testSecretName2,
+			name:              "No names",
+			basePath:          testName2,
 			expectedValues:    []string{},
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName2],
+				DataList: testData[testName2],
 			},
 		},
 		{
-			name:              "secretName",
-			secretName:        testSecretName3,
+			name:              "nil",
+			basePath:          testName3,
 			expectedValues:    nil,
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName3],
+				DataList: testData[testName3],
 			},
 		},
 		{
-			name:              "Get non-existent Key",
-			secretName:        "one",
+			name:              "non-existent",
+			basePath:          "one",
 			expectedValues:    nil,
 			expectedErrorType: pkg.NewErrSecretNameNotFound("Does not exist"),
 			expectedDoCallNum: 1,
@@ -937,18 +937,18 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 			},
 		},
 		{
-			name:              "Get all Keys",
-			secretName:        testSecretName4,
+			name:              "one name",
+			basePath:          testName4,
 			expectedValues:    []string{"four"},
 			expectedErrorType: nil,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName4],
+				DataList: testData[testName4],
 			},
 		},
 		{
 			name:              "Handle HTTP no secretName error",
-			secretName:        testSecretName,
+			basePath:          testName,
 			expectedValues:    nil,
 			expectedErrorType: TestConnErrorSecretNameNotFound,
 			expectedDoCallNum: 1,
@@ -959,7 +959,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		},
 		{
 			name:              "Handle non-200 HTTP response",
-			secretName:        testSecretName,
+			basePath:          testName,
 			expectedValues:    nil,
 			expectedErrorType: TestConnError,
 			expectedDoCallNum: 1,
@@ -970,12 +970,12 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 		},
 		{
 			name:              "Get Key with unknown secretName",
-			secretName:        "nonexistentSecretName",
+			basePath:          "nonexistentSecretName",
 			expectedValues:    nil,
 			expectedErrorType: TestConnErrorSecretNameNotFound,
 			expectedDoCallNum: 1,
 			caller: &InMemoryMockCaller{
-				DataList: testData[testSecretName2],
+				DataList: testData[testName2],
 			},
 		},
 	}
@@ -987,7 +987,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				Port:      8080,
 				Protocol:  "http",
 				Namespace: testNamespace,
-				BasePath:  "test-service",
+				BasePath:  test.basePath,
 			}
 			client := Client{
 				Config:     cfgHTTP,
@@ -995,7 +995,7 @@ func TestHttpSecretStoreManager_GetKeys(t *testing.T) {
 				lc:         logger.NewMockClient(),
 			}
 
-			actual, err := client.GetSecretNames(test.secretName)
+			actual, err := client.GetSecretNames()
 			if test.expectedErrorType != nil {
 				require.Error(t, err)
 

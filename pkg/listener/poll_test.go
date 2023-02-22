@@ -98,7 +98,7 @@ func (mssm MockSecretClient) StoreSecret(secretName string, secrets map[string]s
 	return nil
 }
 
-func (mssm MockSecretClient) GetSecretNames(secretName string) ([]string, error) {
+func (mssm MockSecretClient) GetSecretNames() ([]string, error) {
 	return nil, nil
 }
 

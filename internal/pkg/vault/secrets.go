@@ -454,10 +454,9 @@ func (c *Client) store(secretName string, secrets map[string]string) error {
 	return nil
 }
 
-// GetSecretNames retrieves the keys at the provided secretName. Secret Store returns an array of keys for a given secretName when
-// retrieving a list of keys, versus a k/v map when retrieving secrets.
-func (c *Client) GetSecretNames(secretName string) ([]string, error) {
-	data, err := c.getAllKeyNames(secretName)
+// GetSecretNames retrieves the secret names currently in service's secret store.
+func (c *Client) GetSecretNames() ([]string, error) {
+	data, err := c.getAllKeyNames()
 	if err != nil {
 		return nil, err
 	}
@@ -466,8 +465,8 @@ func (c *Client) GetSecretNames(secretName string) ([]string, error) {
 }
 
 // getAllKeyNames obtains all the keys that reside at the provided secretName.
-func (c *Client) getAllKeyNames(secretName string) ([]string, error) {
-	url, err := c.Config.BuildSecretNameURL(secretName)
+func (c *Client) getAllKeyNames() ([]string, error) {
+	url, err := c.Config.BuildSecretNameURL("")
 	if err != nil {
 		return nil, err
 	}
