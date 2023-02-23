@@ -47,16 +47,16 @@ func NewErrSecretsNotFound(keys []string) ErrSecretsNotFound {
 	return ErrSecretsNotFound{keys: keys}
 }
 
-// ErrPathNotFound error when a secret path cannot be found.
-type ErrPathNotFound struct {
+// ErrSecretNameNotFound error when a secret secretName cannot be found.
+type ErrSecretNameNotFound struct {
 	description string
 }
 
-func (e ErrPathNotFound) Error() string {
-	return fmt.Sprintf("Error retreiving secret path: '%s'", e.description)
+func (e ErrSecretNameNotFound) Error() string {
+	return fmt.Sprintf("Error retreiving secret secretName: '%s'", e.description)
 }
 
-// NewErrPathNotFound creates a new ErrSecretsNotFound error.
-func NewErrPathNotFound(description string) ErrPathNotFound {
-	return ErrPathNotFound{description: description}
+// NewErrSecretNameNotFound creates a new ErrSecretsNotFound error.
+func NewErrSecretNameNotFound(description string) ErrSecretNameNotFound {
+	return ErrSecretNameNotFound{description: description}
 }

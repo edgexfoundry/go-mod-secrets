@@ -50,11 +50,11 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 	return vaultClient, err
 }
 
-// GetSecrets retrieves the secrets at the provided sub-path that matches the specified keys.
-func (c *Client) GetSecrets(subPath string, keys ...string) (map[string]string, error) {
+// GetSecret retrieves the secret at the provided secretName that matches the specified keys.
+func (c *Client) GetSecret(secretName string, keys ...string) (map[string]string, error) {
 
 	// no need to retry now as the secret store should be ready as the security bootstrapper starts in sequence now
-	data, err := c.getAllKeys(subPath)
+	data, err := c.getSecretData(secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +84,10 @@ func (c *Client) GetSecrets(subPath string, keys ...string) (map[string]string, 
 	return values, nil
 }
 
-// StoreSecrets stores the secrets at the provided sub-path for the specified keys.
-func (c *Client) StoreSecrets(subPath string, secrets map[string]string) error {
+// StoreSecret stores the secret at the provided secret name for the specified keys.
+func (c *Client) StoreSecret(secretName string, secrets map[string]string) error {
 	// this interface acting as facade, just calling the internal store func on the client
-	return c.store(subPath, secrets)
+	return c.store(secretName, secrets)
 }
 
 // GenerateConsulToken generates a new Consul token using serviceKey as role name to
@@ -347,9 +347,9 @@ func (c *Client) renewToken() error {
 	return nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided sub-path.
-func (c *Client) getAllKeys(subPath string) (map[string]string, error) {
-	url, err := c.Config.BuildSecretsPathURL(subPath)
+// getSecretData obtains all the keys that reside at the provided secretName.
+func (c *Client) getSecretData(secretName string) (map[string]string, error) {
+	url, err := c.Config.BuildSecretNameURL(secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func (c *Client) getAllKeys(subPath string) (map[string]string, error) {
 	}()
 
 	if resp.StatusCode == 404 {
-		return nil, pkg.NewErrPathNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		return nil, pkg.NewErrSecretNameNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -391,16 +391,16 @@ func (c *Client) getAllKeys(subPath string) (map[string]string, error) {
 
 	data, success := result["data"].(map[string]interface{})
 	if !success || len(data) <= 0 {
-		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secretKeyValues are present at the subpath: '%s'", subPath))
+		return nil, pkg.NewErrSecretStore(fmt.Sprintf("No secretKeyValues are present at the secretName: '%s'", secretName))
 	}
 
 	// Cast the secret values to strings
-	secretKeyValues := make(map[string]string)
+	secretData := make(map[string]string)
 	for k, v := range data {
-		secretKeyValues[k] = v.(string)
+		secretData[k] = v.(string)
 	}
 
-	return secretKeyValues, nil
+	return secretData, nil
 }
 
 func isForbidden(err error) bool {
@@ -410,13 +410,13 @@ func isForbidden(err error) bool {
 	return false
 }
 
-func (c *Client) store(subPath string, secrets map[string]string) error {
+func (c *Client) store(secretName string, secrets map[string]string) error {
 	if len(secrets) == 0 {
 		// nothing to store
 		return nil
 	}
 
-	url, err := c.Config.BuildSecretsPathURL(subPath)
+	url, err := c.Config.BuildSecretNameURL(secretName)
 	if err != nil {
 		return err
 	}
@@ -454,10 +454,9 @@ func (c *Client) store(subPath string, secrets map[string]string) error {
 	return nil
 }
 
-// GetKeys retrieves the keys at the provided sub-path. Secret Store returns an array of keys for a given path when
-// retrieving a list of keys, versus a k/v map when retrieving secrets.
-func (c *Client) GetKeys(subPath string) ([]string, error) {
-	data, err := c.getAllPaths(subPath)
+// GetSecretNames retrieves the secret names currently in service's secret store.
+func (c *Client) GetSecretNames() ([]string, error) {
+	data, err := c.getAllKeyNames()
 	if err != nil {
 		return nil, err
 	}
@@ -465,9 +464,9 @@ func (c *Client) GetKeys(subPath string) ([]string, error) {
 	return data, nil
 }
 
-// getAllKeys obtains all the keys that reside at the provided sub-path.
-func (c *Client) getAllPaths(subPath string) ([]string, error) {
-	url, err := c.Config.BuildSecretsPathURL(subPath)
+// getAllKeyNames obtains all the keys that reside at the provided secretName.
+func (c *Client) getAllKeyNames() ([]string, error) {
+	url, err := c.Config.BuildSecretNameURL("")
 	if err != nil {
 		return nil, err
 	}
@@ -496,7 +495,7 @@ func (c *Client) getAllPaths(subPath string) ([]string, error) {
 	}()
 
 	if resp.StatusCode == 404 {
-		return nil, pkg.NewErrPathNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
+		return nil, pkg.NewErrSecretNameNotFound(fmt.Sprintf("Received a '%d' response from the secret store", resp.StatusCode))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

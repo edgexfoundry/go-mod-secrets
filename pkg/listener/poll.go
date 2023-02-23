@@ -27,8 +27,8 @@ import (
 type InMemoryCacheListener struct {
 	// secretClient retrieves secrets from a secret store.
 	secretClient secrets.SecretClient
-	// path contains the location of the secrets.
-	path string
+	// secretName contains the location of the secrets.
+	secretName string
 	// keys contains the keys for which to provide updates.
 	keys []string
 	// updaterChan communicates updates to the keys/
@@ -55,7 +55,7 @@ type InMemoryCacheListener struct {
 func NewInMemoryCacheListener(client secrets.SecretClient, updateChan chan map[string]string, errorChan chan error, backoffPattern []int, path string, keys []string) InMemoryCacheListener {
 	return InMemoryCacheListener{
 		secretClient:      client,
-		path:              path,
+		secretName:        path,
 		keys:              keys,
 		updaterChan:       updateChan,
 		errorChan:         errorChan,
@@ -73,7 +73,7 @@ func (c *InMemoryCacheListener) GetKeys() (map[string]string, error) {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
 
-	secrets, err := c.secretClient.GetSecrets(c.path, c.keys...)
+	secrets, err := c.secretClient.GetSecret(c.secretName, c.keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (c *InMemoryCacheListener) SetSecrets(secrets map[string]string) error {
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
 
-	if err := c.secretClient.StoreSecrets(c.path, secrets); err != nil {
+	if err := c.secretClient.StoreSecret(c.secretName, secrets); err != nil {
 		return err
 	}
 
@@ -157,7 +157,7 @@ func (c *InMemoryCacheListener) update() {
 			func() {
 				c.cacheMutex.Lock()
 				defer c.cacheMutex.Unlock()
-				secrets, err := c.secretClient.GetSecrets(c.path, c.keys...)
+				secrets, err := c.secretClient.GetSecret(c.secretName, c.keys...)
 				if err != nil {
 					c.errorChan <- err
 					errorCount++
