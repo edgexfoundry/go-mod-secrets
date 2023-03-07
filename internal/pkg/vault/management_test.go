@@ -507,6 +507,60 @@ func TestCreateRole(t *testing.T) {
 	}
 }
 
+func TestCheckIdentityKeyExists(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "LIST", r.Method)
+		require.Equal(t, oidcKeyAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		w.WriteHeader(http.StatusOK)
+		response := ListNamedKeysResponse{}
+		response.Data.Keys = []string{"service1", "service2"}
+		err := json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	exist, err := client.CheckIdentityKeyExists(expectedToken, "service2")
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, true, exist)
+}
+
+func TestCheckIdentityKeyNotExists(t *testing.T) {
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "LIST", r.Method)
+		require.Equal(t, oidcKeyAPI, r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		w.WriteHeader(http.StatusOK)
+		response := ListNamedKeysResponse{}
+		response.Data.Keys = []string{"service1", "service2"}
+		err := json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	exist, err := client.CheckIdentityKeyExists(expectedToken, "service3")
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, false, exist)
+}
+
 func TestCreateOrUpdateIdentity(t *testing.T) {
 	// Arrange
 	mockLogger := logger.MockLogger{}
