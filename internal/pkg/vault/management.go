@@ -533,7 +533,7 @@ func (c *Client) CheckIdentityKeyExists(token string, keyName string) (bool, err
 	}
 
 	for _, v := range response.Data.Keys {
-		if v == "keyName" {
+		if v == keyName {
 			return true, nil
 		}
 	}
