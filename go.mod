@@ -3,9 +3,9 @@ module github.com/edgexfoundry/go-mod-secrets/v3
 go 1.18
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.15
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.26
 	github.com/spiffe/go-spiffe/v2 v2.1.2
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 )
 
 require (
