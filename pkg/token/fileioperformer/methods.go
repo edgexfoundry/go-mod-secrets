@@ -18,7 +18,6 @@ package fileioperformer
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -45,7 +44,7 @@ func (*defaultFileIoPerformer) MkdirAll(path string, perm os.FileMode) error {
 func MakeReadCloser(reader io.Reader) io.ReadCloser {
 	rc, ok := reader.(io.ReadCloser)
 	if !ok && reader != nil {
-		rc = ioutil.NopCloser(reader)
+		rc = io.NopCloser(reader)
 	}
 	return rc
 }

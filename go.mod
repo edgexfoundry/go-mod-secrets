@@ -1,6 +1,6 @@
 module github.com/edgexfoundry/go-mod-secrets/v3
 
-go 1.18
+go 1.20
 
 require (
 	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.15

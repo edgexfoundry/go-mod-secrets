@@ -19,7 +19,7 @@ package authtokenloader
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/token/fileioperformer"
@@ -40,7 +40,7 @@ func (p *tokenProvider) Load(path string) (authToken string, err error) {
 		return
 	}
 	readCloser := fileioperformer.MakeReadCloser(reader)
-	fileContents, err := ioutil.ReadAll(readCloser)
+	fileContents, err := io.ReadAll(readCloser)
 	if err != nil {
 		return
 	}

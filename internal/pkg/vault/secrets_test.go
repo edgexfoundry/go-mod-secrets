@@ -21,17 +21,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -746,7 +745,7 @@ func (smhc *SimpleMockAuthHttpCaller) Do(req *http.Request) (*http.Response, err
 
 		return &http.Response{
 			StatusCode: smhc.statusCode,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(smhc.returnResponse)),
+			Body:       io.NopCloser(bytes.NewBufferString(smhc.returnResponse)),
 		}, nil
 
 	default:
@@ -806,7 +805,7 @@ func (emc *ErrorMockCaller) Do(_ *http.Request) (*http.Response, error) {
 	}
 
 	return &http.Response{
-		Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+		Body:       io.NopCloser(bytes.NewBufferString("")),
 		StatusCode: emc.StatusCode,
 	}, nil
 }
@@ -826,7 +825,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		if caller.nErrorsReturned != caller.NErrorsBeforeSuccess {
 			caller.nErrorsReturned++
 			return &http.Response{
-				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				Body:       io.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
@@ -840,13 +839,13 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 	case http.MethodGet:
 		if req.URL.Path != testSecretName_with_prefix {
 			return &http.Response{
-				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				Body:       io.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
 		r, _ := json.Marshal(caller.Data)
 		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
+			Body:       io.NopCloser(bytes.NewBufferString(string(r))),
 			StatusCode: 200,
 		}, nil
 	case "LIST":
@@ -854,19 +853,19 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		path := strings.Replace(req.URL.Path, "/", "", 1)
 		if _, ok := acceptedPaths[path]; !ok {
 			return &http.Response{
-				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				Body:       io.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
 		r, _ := json.Marshal(caller.DataList)
 		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(string(r))),
+			Body:       io.NopCloser(bytes.NewBufferString(string(r))),
 			StatusCode: 200,
 		}, nil
 	case http.MethodPost:
 		if req.URL.Path != testSecretName_with_prefix {
 			return &http.Response{
-				Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+				Body:       io.NopCloser(bytes.NewBufferString("")),
 				StatusCode: 404,
 			}, nil
 		}
@@ -874,7 +873,7 @@ func (caller *InMemoryMockCaller) Do(req *http.Request) (*http.Response, error) 
 		_ = json.NewDecoder(req.Body).Decode(&result)
 		caller.Result = result
 		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString("")),
+			Body:       io.NopCloser(bytes.NewBufferString("")),
 			StatusCode: 200,
 		}, nil
 	default:

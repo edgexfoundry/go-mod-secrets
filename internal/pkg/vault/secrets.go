@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -124,7 +124,7 @@ func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
 		_ = resp.Body.Close()
 	}()
 
-	tokenResp, err := ioutil.ReadAll(resp.Body)
+	tokenResp, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return emptyToken, err
 	}
