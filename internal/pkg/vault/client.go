@@ -19,8 +19,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
@@ -77,7 +77,7 @@ func createHTTPClient(config types.SecretConfig) (pkg.Caller, error) {
 
 	// Read and load the CA Root certificate so the client will be able to use TLS without skipping the verification of
 	// the cert received by the server.
-	caCert, err := ioutil.ReadFile(config.RootCaCertPath)
+	caCert, err := os.ReadFile(config.RootCaCertPath)
 	if err != nil {
 		return nil, ErrCaRootCert{
 			path:        config.RootCaCertPath,

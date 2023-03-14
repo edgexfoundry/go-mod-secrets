@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -54,7 +53,7 @@ func (r *fluentRequester) Insecure() Caller {
 
 func (r *fluentRequester) WithTLS(caReader io.Reader, serverName string) Caller {
 	readCloser := fileioperformer.MakeReadCloser(caReader)
-	caCert, err := ioutil.ReadAll(readCloser)
+	caCert, err := io.ReadAll(readCloser)
 	defer readCloser.Close()
 	if err != nil {
 		r.logger.Error("failed to load rootCA certificate.")
