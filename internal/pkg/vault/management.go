@@ -562,7 +562,7 @@ func (c *Client) CreateNamedIdentityKey(token string, keyName string, algorithm 
 	return err
 }
 
-func (c *Client) CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, jwtTTL string) error {
+func (c *Client) CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, audience string, jwtTTL string) error {
 
 	var templatePointer *string = nil
 	if template != "" {
@@ -570,6 +570,7 @@ func (c *Client) CreateOrUpdateIdentityRole(token string, roleName string, keyNa
 	}
 
 	request := CreateOrUpdateIdentityRoleRequest{
+		ClientID: audience,
 		Key:      keyName,
 		Template: templatePointer, // optional field
 		TokenTTL: jwtTTL,

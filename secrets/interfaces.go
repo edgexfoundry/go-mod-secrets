@@ -88,5 +88,5 @@ type SecretStoreClient interface {
 	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]interface{}, error)
 	CheckIdentityKeyExists(token string, keyName string) (bool, error)
 	CreateNamedIdentityKey(token string, keyName string, algorithm string) error
-	CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, jwtTTL string) error
+	CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, audience string, jwtTTL string) error
 }
