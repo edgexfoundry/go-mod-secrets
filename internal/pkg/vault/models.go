@@ -191,6 +191,7 @@ type CreateNamedKeyRequest struct {
 
 // CreateOrUpdateIdentityRoleRequest is the request to POST /v1/identity/oidc/role/:name
 type CreateOrUpdateIdentityRoleRequest struct {
+	ClientID string  `json:"client_id,omitempty"`
 	Key      string  `json:"key"`
 	Template *string `json:"template,omitempty"`
 	TokenTTL string  `json:"ttl"`
