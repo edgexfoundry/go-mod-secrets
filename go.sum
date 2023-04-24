@@ -4,8 +4,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.35 h1:XQgLXhpZ03JJAz4BvH371jQvFmiWcRI9wS90rE/PtS8=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.35/go.mod h1:1YS2J5NfPCd7TYBk0alu+RR5EBzBb+bnG0KF1qNRQYY=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.37 h1:UTYlgeT2SxW7I/pjVcBOK0uBQGn0GAfdGJQbRU/vaoM=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.37/go.mod h1:1YS2J5NfPCd7TYBk0alu+RR5EBzBb+bnG0KF1qNRQYY=
 github.com/go-jose/go-jose/v3 v3.0.0 h1:s6rrhirfEP/CGIoc6p+PZAeogN2SxKav6Wp7+dyMWVo=
 github.com/go-jose/go-jose/v3 v3.0.0/go.mod h1:RNkWWRld676jZEYoV3+XK8L2ZnNSvIsxFMht0mSX+u8=
 github.com/go-kit/log v0.2.1 h1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=
