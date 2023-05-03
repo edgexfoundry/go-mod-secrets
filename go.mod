@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-secrets/v3
 go 1.20
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.38
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.0.0-dev.39
 	github.com/spiffe/go-spiffe/v2 v2.1.4
 	github.com/stretchr/testify v1.8.2
 )
@@ -16,11 +16,11 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.12.0 // indirect
+	github.com/go-playground/validator/v10 v10.13.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/leodido/go-urn v1.2.2 // indirect
+	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
