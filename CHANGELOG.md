@@ -7,6 +7,35 @@
 
 - [go-mod-core-contracts](https://github.com/edgexfoundry/go-mod-core-contracts/blob/main/CHANGELOG.md)
 
+## [v3.0.0] - 2023-05-31
+
+### Features ✨
+
+- Add Ability to set JWT audience claim ([#f3306c0](https://github.com/edgexfoundry/go-mod-secrets/commit/f3306c0886e2eb0c9d9ff51f22dc8190f0523958))
+  ```text
+  BREAKING CHANGE: JWTs can now be created with a fix audience value. Needed for OpenZiti integration
+  ```
+- Enabling hooks for Vault identity features ([#171](https://github.com/edgexfoundry/go-mod-secrets/issues/171)) ([#53c30ee](https://github.com/edgexfoundry/go-mod-secrets/commits/53c30ee))
+
+### Bug Fixes 🐛
+
+- CheckIdentityKeyExists was comparing to constant ([#192](https://github.com/edgexfoundry/go-mod-secrets/issues/192)) ([#3201b0f](https://github.com/edgexfoundry/go-mod-secrets/commits/3201b0f))
+
+### Code Refactoring ♻
+
+- Refactor all usages of path to be SecretName in APIs and InsecureSecrets configuration ([#9c30f8a](https://github.com/edgexfoundry/go-mod-secrets/commit/9c30f8aa9282133db9d8ebe4ffa800148d72dd72))
+  ```text
+  BREAKING CHANGE: Path renamed SecretName, GetSecrets renamed to GetSecret, StoreSecrets renamed to StoreSecret, GetKeys renamed to GetSecretNames
+  ```
+- Update module to v3 ([#52131f2](https://github.com/edgexfoundry/go-mod-secrets/commit/52131f2bd3a06dc9d4c81360f9be7df2f5aefe44))
+  ```text
+  BREAKING CHANGE: Import paths will need to change to v3
+  ```
+
+### Build 👷
+
+- Update to Go 1.20 and linter v1.51.2 ([#195](https://github.com/edgexfoundry/go-mod-secrets/issues/195)) ([#ece5487](https://github.com/edgexfoundry/go-mod-secrets/commits/ece5487))
+
 ## [v2.3.0] - 2022-11-09
 
 ### Features ✨
