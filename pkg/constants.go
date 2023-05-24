@@ -14,11 +14,15 @@
 
 package pkg
 
+import (
+	"github.com/edgexfoundry/go-mod-core-contracts/v3/common"
+)
+
 // Defines the valid secret store providers.
 const (
 	CoreSecurityServiceKey         = "edgex-core-security"
 	ConfigFileName                 = "configuration.toml"
 	ConfigDirectory                = "./res"
 	ConfigDirEnv                   = "EDGEX_CONF_DIR"
-	SpiffeTokenProviderGetTokenAPI = "/api/v2/gettoken" // nolint: gosec
+	SpiffeTokenProviderGetTokenAPI = common.ApiBase + "/gettoken" // nolint: gosec
 )
