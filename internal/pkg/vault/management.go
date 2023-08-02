@@ -398,7 +398,7 @@ func (c *Client) LookupAuthHandle(token string, mountPoint string) (string, erro
 
 func (c *Client) CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error {
 
-	const UserNameRE string = "^[-a-zA-Z0-9]+$"
+	const UserNameRE string = "^[-a-zA-Z0-9_]+$"
 
 	re, err := regexp.Compile(UserNameRE)
 	if err != nil {
@@ -432,7 +432,7 @@ func (c *Client) CreateOrUpdateUser(token string, mountPoint string, username st
 
 func (c *Client) DeleteUser(token string, mountPoint string, username string) error {
 
-	const UserNameRE string = "^[-a-zA-Z0-9]+$"
+	const UserNameRE string = "^[-a-zA-Z0-9_]+$"
 
 	re, err := regexp.Compile(UserNameRE)
 	if err != nil {
