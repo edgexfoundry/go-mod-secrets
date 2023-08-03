@@ -4,8 +4,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.2 h1:H3ls1vyxCv6pigZ/RZlRhj9lUTQq7CiT5/dnZRsgVmQ=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.2/go.mod h1:dadH49hOQlIKkbOfRj5gYEez8l9kUQ3aj9cc8uA5hv4=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.3 h1:NJa87GfnUZw/GvX2aeeZ4ZQoSzwkRotuLQej2ay6XUc=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.3/go.mod h1:dadH49hOQlIKkbOfRj5gYEez8l9kUQ3aj9cc8uA5hv4=
 github.com/gabriel-vasile/mimetype v1.4.2 h1:w5qFW6JKBz9Y393Y4q372O9A7cUSequkh1Q7OhCmWKU=
 github.com/gabriel-vasile/mimetype v1.4.2/go.mod h1:zApsH/mKG4w07erKIaJPFiX0Tsq9BFQgN3qGY5GnNgA=
 github.com/go-jose/go-jose/v3 v3.0.0 h1:s6rrhirfEP/CGIoc6p+PZAeogN2SxKav6Wp7+dyMWVo=

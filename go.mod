@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-secrets/v3
 go 1.20
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.2
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.3
 	github.com/spiffe/go-spiffe/v2 v2.1.6
 	github.com/stretchr/testify v1.8.4
 )
