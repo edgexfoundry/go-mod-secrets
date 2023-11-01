@@ -7,6 +7,16 @@
 
 - [go-mod-core-contracts](https://github.com/edgexfoundry/go-mod-core-contracts/blob/main/CHANGELOG.md)
 
+## [v3.1.0] - 2023-11-15
+
+### 🐛 Bug Fixes
+
+- *(security)* Allow underscores in service keys / Vault usernames ([#219](https://github.com/edgexfoundry/go-mod-secrets/issues/219)) ([8fb6d1b…](https://github.com/edgexfoundry/go-mod-secrets/commit/8fb6d1b0386788cfd9b74cd06fe2c4d5ecf1c81f))
+
+### 👷 Build
+
+- Upgrade to go 1.21 and linter 1.54.2 ([#226](https://github.com/edgexfoundry/go-mod-secrets/issues/226)) ([48a709c…](https://github.com/edgexfoundry/go-mod-secrets/commit/48a709c2b7f052d5ea8334acb6c02c03a8f30738))
+
 ## [v3.0.0] - 2023-05-31
 
 ### Features ✨
