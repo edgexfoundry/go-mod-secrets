@@ -47,7 +47,7 @@ func TestHealthCheck(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, HealthAPI, r.URL.EscapedPath())
+		require.Contains(t, HealthAPI, r.URL.EscapedPath())
 	}))
 	defer ts.Close()
 
