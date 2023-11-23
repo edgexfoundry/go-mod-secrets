@@ -27,7 +27,8 @@ import (
 )
 
 func (c *Client) HealthCheck() (int, error) {
-	// According to the Vault API documentation, the /sys/health endpoints of the standby node and perfstandby node
+	// According to the Vault API documentation (https://developer.hashicorp.com/vault/api-docs/system/health),
+	// the /sys/health endpoints of the standby node and perfstandby node
 	// will return the status code specified in the activecode field, i.e., 200, when standbyok=true and perfstandbyok=true are set.
 	healthAPI := HealthAPI + "?standbyok=true&perfstandbyok=true"
 
