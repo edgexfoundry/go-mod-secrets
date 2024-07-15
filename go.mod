@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-secrets/v3
 go 1.21
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.28
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.29
 	github.com/spiffe/go-spiffe/v2 v2.3.0
 	github.com/stretchr/testify v1.9.0
 )
@@ -24,9 +24,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/net v0.27.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
