@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -24,11 +25,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/internal/pkg/vault"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/internal/pkg/openbao"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/logger"
 )
 
 func TestNewSecretsClient(t *testing.T) {
@@ -37,7 +38,7 @@ func TestNewSecretsClient(t *testing.T) {
 	tokenPeriod := 6
 	var tokenDataMap sync.Map
 	// ttl > half of period
-	tokenDataMap.Store("TestToken", vault.TokenLookupResponse{
+	tokenDataMap.Store("TestToken", openbao.TokenLookupResponse{
 		Data: types.TokenMetadata{
 			Renewable: true,
 			Ttl:       tokenPeriod * 7 / 10,
@@ -45,7 +46,7 @@ func TestNewSecretsClient(t *testing.T) {
 		},
 	})
 
-	server := vault.GetMockTokenServer(&tokenDataMap)
+	server := openbao.GetMockTokenServer(&tokenDataMap)
 	defer server.Close()
 
 	serverURL, err := url.Parse(server.URL)
@@ -60,8 +61,8 @@ func TestNewSecretsClient(t *testing.T) {
 		Type        string
 		ExpectError bool
 	}{
-		{"Valid", context.Background(), Vault, false},
-		{"Invalid - no context", nil, Vault, true},
+		{"Valid", context.Background(), DefaultSecretStore, false},
+		{"Invalid - no context", nil, DefaultSecretStore, true},
 		{"Invalid - bad type", context.Background(), "BAD", true},
 	}
 
@@ -97,7 +98,7 @@ func TestNewSecretStoreClient(t *testing.T) {
 		Type        string
 		ExpectError bool
 	}{
-		{"Valid", Vault, false},
+		{"Valid", DefaultSecretStore, false},
 		{"Invalid - bad type", "BAD", true},
 	}
 

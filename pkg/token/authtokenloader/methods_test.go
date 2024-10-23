@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2024 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -22,13 +23,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/token/fileioperformer/mocks"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/token/fileioperformer/mocks"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const createTokenJSON = `{"auth":{"client_token":"some-token-value"}}` // nolint: gosec
-const vaultInitJSON = `{"root_token":"some-token-value"}`
+const secretStoreInitJSON = `{"root_token":"some-token-value"}`        // nolint: gosec
 const expectedToken = "some-token-value"
 
 func TestReadCreateTokenJSON(t *testing.T) {
@@ -43,8 +44,8 @@ func TestReadCreateTokenJSON(t *testing.T) {
 	assert.Equal(t, expectedToken, token)
 }
 
-func TestReadVaultInitJSON(t *testing.T) {
-	stringReader := strings.NewReader(vaultInitJSON)
+func TestReadSecretStoreInitJSON(t *testing.T) {
+	stringReader := strings.NewReader(secretStoreInitJSON)
 	mockFileIoPerformer := &mocks.FileIoPerformer{}
 	mockFileIoPerformer.On("OpenFileReader", "/dev/null", os.O_RDONLY, os.FileMode(0400)).Return(stringReader, nil)
 

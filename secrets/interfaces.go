@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +19,7 @@ package secrets
 import (
 	"context"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
 // SecretClient provides a contract for storing and retrieving secrets from a secret store provider.
@@ -35,15 +36,6 @@ type SecretClient interface {
 	// secretName specifies the type or location of the secret to store.
 	// data map specifies the "key": "value" pairs of secret data to store
 	StoreSecret(secretName string, data map[string]string) error
-
-	// GenerateConsulToken generates a new Consul token based on the given serviceKey
-	// it uses a secret store token from config and requires the permission to generate a Consul token
-	// the Consul token is like a bearer token and is used to access the information from Consul
-	// like service's configuration in key/value store of Consul
-	// the generated token is unique every time
-	// caller should persist or cache the generated Consul token, at least per runtime cycle, to reduce the number of
-	// tokens stored in Consul server side and the number of calls to this API
-	GenerateConsulToken(serviceKey string) (string, error)
 
 	// SetAuthToken sets the internal Auth Token with the new value specified.
 	SetAuthToken(ctx context.Context, token string) error
@@ -66,7 +58,6 @@ type SecretStoreClient interface {
 	InstallPolicy(token string, policyName string, policyDocument string) error
 	CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error)
 	EnableKVSecretEngine(token string, mountPoint string, kvVersion string) error
-	EnableConsulSecretEngine(token string, mountPoint string, defaultLeaseTTL string) error
 	RegenRootToken(keys []string) (string, error)
 	CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error)
 	ListTokenAccessors(token string) ([]string, error)
@@ -74,8 +65,6 @@ type SecretStoreClient interface {
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
 	LookupToken(token string) (types.TokenMetadata, error)
 	RevokeToken(token string) error
-	ConfigureConsulAccess(secretStoreToken string, bootstrapACLToken string, consulHost string, consulPort int) error
-	CreateRole(secretStoreToken string, consulRole types.ConsulRole) error
 	CreateOrUpdateIdentity(token string, name string, metadata map[string]string, policies []string) (string, error)
 	DeleteIdentity(token string, name string) error
 	LookupIdentity(token string, name string) (string, error)

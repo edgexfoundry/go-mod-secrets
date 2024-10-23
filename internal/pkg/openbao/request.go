@@ -15,7 +15,7 @@
  * @author: Tingyu Zeng, Dell / Alain Pulluelo, ForgeRock AS
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/common"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/common"
 )
 
 // parameters structure for request method

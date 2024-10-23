@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,14 +19,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/internal/pkg/vault"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/internal/pkg/openbao"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/logger"
 )
 
-const Vault = "vault"
+const DefaultSecretStore = "openbao"
 
 // NewSecretsClient creates a new instance of a SecretClient based on the passed in configuration.
 // The SecretClient allows access to secret(s) for the configured token.
@@ -34,12 +35,12 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 		return nil, pkg.NewErrSecretStore("background ctx is required and cannot be nil")
 	}
 
-	// Currently only have a Vault implementation, so no need to have/check type.
+	// Currently only have one secret store type implementation, so no need to have/check type.
 
 	switch config.Type {
-	// Currently only have a Vault implementation, so type isn't actual set in configuration
-	case Vault:
-		return vault.NewSecretsClient(ctx, config, lc, callback)
+	// Currently only have one secret store type implementation, so type isn't actual set in configuration
+	case DefaultSecretStore:
+		return openbao.NewSecretsClient(ctx, config, lc, callback)
 	default:
 		return nil, fmt.Errorf("invalid secrets client type of '%s'", config.Type)
 	}
@@ -49,8 +50,8 @@ func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.
 // The SecretStoreClient provides management functionality to manage the secret store.
 func NewSecretStoreClient(config types.SecretConfig, lc logger.LoggingClient, requester pkg.Caller) (SecretStoreClient, error) {
 	switch config.Type {
-	case Vault:
-		return vault.NewClient(config, requester, false, lc)
+	case DefaultSecretStore:
+		return openbao.NewClient(config, requester, false, lc)
 
 	default:
 		return nil, fmt.Errorf("invalid secret store client type of '%s'", config.Type)
