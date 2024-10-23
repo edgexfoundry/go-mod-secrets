@@ -12,7 +12,7 @@
 // the License.
 //
 
-package vault
+package openbao
 
 import (
 	"encoding/base64"

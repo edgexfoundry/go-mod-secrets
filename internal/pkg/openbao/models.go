@@ -12,19 +12,18 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
 const (
 	KeyValue                   = "kv"
-	Consul                     = "consul"
 	UsernamePasswordAuthMethod = "userpass"
 )
 
-// InitRequest contains a Vault init request regarding the Shamir Secret Sharing (SSS) parameters
+// InitRequest contains a secret store init request regarding the Shamir Secret Sharing (SSS) parameters
 type InitRequest struct {
 	SecretShares    int `json:"secret_shares"`
 	SecretThreshold int `json:"secret_threshold"`
@@ -82,13 +81,13 @@ type ListSecretEnginesResponse struct {
 	} `json:"data"`
 }
 
-// UnsealRequest contains a Vault unseal request
+// UnsealRequest contains a secret store unseal request
 type UnsealRequest struct {
 	Key   string `json:"key"`
 	Reset bool   `json:"reset"`
 }
 
-// UnsealResponse contains a Vault unseal response
+// UnsealResponse contains a secret store unseal response
 type UnsealResponse struct {
 	Sealed   bool `json:"sealed"`
 	T        int  `json:"t"`
@@ -113,7 +112,7 @@ type EnableSecretsEngineRequest struct {
 	Config      *SecretsEngineConfig  `json:"config,omitempty"`
 }
 
-// CreateUpdateEntityRequest enables or updates a Vault Identity
+// CreateUpdateEntityRequest enables or updates a secret store Identity
 type CreateUpdateEntityRequest struct {
 	Metadata map[string]string `json:"metadata"`
 	Policies []string          `json:"policies"`
@@ -134,7 +133,7 @@ type ReadEntityByNameResponse struct {
 	Data JsonID `json:"data"`
 }
 
-// EnableAuthMethodRequest enables a Vault Identity authentication method
+// EnableAuthMethodRequest enables a secret store Identity authentication method
 type EnableAuthMethodRequest struct {
 	Type string `json:"type"`
 }
@@ -149,7 +148,7 @@ type ListAuthMethodsResponse struct {
 	Data map[string]Accessor `json:"data"`
 }
 
-// CreateOrUpdateUserRequest is used to create a vault login
+// CreateOrUpdateUserRequest is used to create a secret store login
 type CreateOrUpdateUserRequest struct {
 	Password      string   `json:"password"`
 	TokenPeriod   string   `json:"token_period"`

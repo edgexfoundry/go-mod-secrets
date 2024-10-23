@@ -21,5 +21,5 @@ type Caller interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// TokenExpiredCallback is the callback function to handle the case when the vault token has already expired
+// TokenExpiredCallback is the callback function to handle the case when the secret store token has already expired
 type TokenExpiredCallback func(expiredToken string) (replacementToken string, retry bool)

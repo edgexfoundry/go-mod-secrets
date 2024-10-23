@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +14,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"fmt"
@@ -23,11 +24,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
 func (c *Client) HealthCheck() (int, error) {
-	// According to the Vault API documentation (https://developer.hashicorp.com/vault/api-docs/system/health),
+	// According to the OpenBao API documentation (https://openbao.org/api-docs/system/health/),
 	// the /sys/health endpoints of the standby node and perfstandby node
 	// will return the status code specified in the activecode field, i.e., 200, when standbyok=true and perfstandbyok=true are set.
 	healthAPI := HealthAPI + "?standbyok=true&perfstandbyok=true"
@@ -45,14 +46,14 @@ func (c *Client) HealthCheck() (int, error) {
 
 	// If code is 0 there was a more serious error that prevented request for executing
 	if code != 0 {
-		c.lc.Infof("Vault health check HTTP status: StatusCode: %d", code)
+		c.lc.Infof("Secret store health check HTTP status: StatusCode: %d", code)
 	}
 
 	return code, err
 }
 
 func (c *Client) Init(secretThreshold int, secretShares int) (types.InitResponse, error) {
-	c.lc.Infof("vault init strategy (SSS parameters): shares=%d threshold=%d",
+	c.lc.Infof("secret store init strategy (SSS parameters): shares=%d threshold=%d",
 		secretShares,
 		secretThreshold)
 
@@ -77,7 +78,7 @@ func (c *Client) Init(secretThreshold int, secretShares int) (types.InitResponse
 }
 
 func (c *Client) Unseal(keysBase64 []string) error {
-	c.lc.Infof("Vault unsealing Process. Applying key shares.")
+	c.lc.Infof("Secret store unsealing Process. Applying key shares.")
 
 	secretShares := len(keysBase64)
 
@@ -102,9 +103,9 @@ func (c *Client) Unseal(keysBase64 []string) error {
 			return err
 		}
 
-		c.lc.Info(fmt.Sprintf("Vault key share %d/%d successfully applied.", keyCounter, secretShares))
+		c.lc.Info(fmt.Sprintf("Secret store key share %d/%d successfully applied.", keyCounter, secretShares))
 		if !response.Sealed {
-			c.lc.Info("Vault key share threshold reached. Unsealing complete.")
+			c.lc.Info("Secret store key share threshold reached. Unsealing complete.")
 			return nil
 		}
 		keyCounter++
@@ -152,30 +153,6 @@ func (c *Client) EnableKVSecretEngine(token string, mountPoint string, kvVersion
 	return err
 }
 
-func (c *Client) EnableConsulSecretEngine(token string, mountPoint string, defaultLeaseTTL string) error {
-	urlPath := path.Join(MountsAPI, mountPoint)
-	parameters := EnableSecretsEngineRequest{
-		Type:        Consul,
-		Description: "consul secret storage",
-		Config: &SecretsEngineConfig{
-			DefaultLeaseTTLDuration: defaultLeaseTTL,
-		},
-	}
-
-	_, err := c.doRequest(RequestArgs{
-		AuthToken:            token,
-		Method:               http.MethodPost,
-		Path:                 urlPath,
-		JSONObject:           parameters,
-		BodyReader:           nil,
-		OperationDescription: "update mounts for Consul",
-		ExpectedStatusCode:   http.StatusNoContent,
-		ResponseObject:       nil,
-	})
-
-	return err
-}
-
 func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error) {
 	var response ListSecretEnginesResponse
 
@@ -199,60 +176,6 @@ func (c *Client) CheckSecretEngineInstalled(token string, mountPoint string, eng
 	}
 
 	return false, nil
-}
-
-// CreateRole creates a Consul role that can be used to generate Consul tokens
-// and part of elements for the role ties up with the Consul policies in which it dictates
-// the permission of accesses to the Consul kv store or agent etc.
-func (c *Client) CreateRole(secretStoreToken string, consulRole types.ConsulRole) error {
-	if len(secretStoreToken) == 0 {
-		return fmt.Errorf("required secret store token is empty")
-	}
-
-	if len(consulRole.RoleName) == 0 {
-		return fmt.Errorf("required Consul role name is empty")
-	}
-
-	createRoleURL := fmt.Sprintf(createConsulRoleVaultAPI, consulRole.RoleName)
-	c.lc.Debugf("configAccessURL: %s", createRoleURL)
-	_, err := c.doRequest(RequestArgs{
-		AuthToken:            secretStoreToken,
-		Method:               http.MethodPost,
-		Path:                 createRoleURL,
-		JSONObject:           &consulRole,
-		BodyReader:           nil,
-		OperationDescription: "create Role",
-		ExpectedStatusCode:   http.StatusNoContent,
-		ResponseObject:       nil,
-	})
-
-	return err
-}
-
-// ConfigureConsulAccess is to enable the Consul config access to the SecretStore via consul/config/access API
-// see the reference: https://www.vaultproject.io/api-docs/secret/consul#configure-access
-func (c *Client) ConfigureConsulAccess(secretStoreToken string, bootstrapACLToken string, consulHost string, consulPort int) error {
-	type ConfigAccess struct {
-		ConsulAddress     string `json:"address"`
-		BootstrapACLToken string `json:"token"`
-	}
-
-	payload := &ConfigAccess{
-		ConsulAddress:     fmt.Sprintf("%s:%d", consulHost, consulPort),
-		BootstrapACLToken: bootstrapACLToken,
-	}
-
-	_, err := c.doRequest(RequestArgs{
-		AuthToken:            secretStoreToken,
-		Method:               http.MethodPost,
-		Path:                 consulConfigAccessVaultAPI,
-		JSONObject:           &payload,
-		BodyReader:           nil,
-		OperationDescription: "Configure Consul Access",
-		ExpectedStatusCode:   http.StatusNoContent,
-		ResponseObject:       nil,
-	})
-	return err
 }
 
 func (c *Client) CreateOrUpdateIdentity(secretStoreToken string, name string, metadata map[string]string, policies []string) (string, error) {

@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
-	"github.com/edgexfoundry/go-mod-secrets/v3/secrets"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/secrets"
 )
 
 const (
@@ -104,10 +104,6 @@ func (mssm MockSecretClient) GetSecretNames() ([]string, error) {
 
 func (mssm MockSecretClient) GetTokenDetails() (*types.TokenMetadata, error) {
 	return nil, nil
-}
-
-func (mssm MockSecretClient) GenerateConsulToken(serviceKey string) (string, error) {
-	panic("GenerateConsulToken not implemented")
 }
 
 func (mssm MockSecretClient) SetAuthToken(_ context.Context, _ string) error {

@@ -12,7 +12,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
 // GetMockTokenServer returns a stub http test server for dealing with token lookup-self and renew-self API calls

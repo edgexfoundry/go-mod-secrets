@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +14,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"bytes"
@@ -35,10 +36,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/logger"
 )
 
 const (
@@ -668,55 +669,6 @@ func TestHttpSecretStoreManager_StoreSecret(t *testing.T) {
 			for k, expected := range test.expectedValues {
 				assert.Equalf(t, expected, actual[k],
 					"After storing secrets, expected value '%s', but got '%s'", expected, actual[k])
-			}
-		})
-	}
-}
-
-func TestGenerateConsulToken(t *testing.T) {
-	okJsonData := `{"data":{"token":"token-1", "accessor":"xxxxx"}}`
-	authToken := "auth-token"
-	tests := []struct {
-		name          string
-		serviceKey    string
-		token         string
-		expectError   bool
-		expectedToken string
-		caller        pkg.Caller
-	}{
-		{"ok:Get token response ok", "service-1", authToken, false, "token-1", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 200, returnError: false,
-			returnResponse: okJsonData}},
-		{"bad:Get token http status not ok", "service-1", authToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 500, returnError: false}},
-		{"bad:Get token request not ok", "service-1", authToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: authToken, returnError: true}},
-		{"bad:Get token with empty authToken", "service-1", "", true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: "", statusCode: 403, returnError: true}},
-		{"bad:Get token with empty service key", "", authToken, true, "", &SimpleMockAuthHttpCaller{
-			authTokenHeader: AuthTypeHeader, authToken: authToken, statusCode: 400, returnError: true}},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cfgHTTP := types.SecretConfig{
-				Host:           "localhost",
-				Port:           8080,
-				Protocol:       "http",
-				Authentication: types.AuthenticationInfo{AuthToken: test.token},
-			}
-			secretstoreClient := Client{
-				Config:     cfgHTTP,
-				HttpCaller: test.caller,
-				lc:         logger.NewMockClient(),
-			}
-
-			actual, err := secretstoreClient.GenerateConsulToken(test.serviceKey)
-			if test.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.expectedToken, actual)
 			}
 		})
 	}

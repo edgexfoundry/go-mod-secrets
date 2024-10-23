@@ -13,7 +13,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"fmt"

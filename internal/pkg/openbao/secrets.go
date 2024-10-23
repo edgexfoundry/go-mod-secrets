@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,41 +14,39 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"path"
-	"strings"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/logger"
 )
 
 // a map variable to handle the case of the same caller to have
 // multiple secret clients with potentially the same tokens while renewing token
 // in the background go-routine
-type vaultTokenToCancelFuncMap map[string]context.CancelFunc
+type secretStoreTokenToCancelFuncMap map[string]context.CancelFunc
 
-// NewSecretsClient constructs a Vault *Client which communicates with Vault via HTTP(S) for basic usage of secrets
+// NewSecretsClient constructs a secret store *Client which communicates with OpenBao via HTTP(S) for basic usage of secrets
 func NewSecretsClient(ctx context.Context, config types.SecretConfig, lc logger.LoggingClient, callback pkg.TokenExpiredCallback) (*Client, error) {
-	vaultClient, err := NewClient(config, nil, true, lc)
+	secretStoreClient, err := NewClient(config, nil, true, lc)
 	if err != nil {
 		return nil, err
 	}
 
-	vaultClient.tokenExpiredCallback = callback
-	err = vaultClient.SetAuthToken(ctx, config.Authentication.AuthToken)
+	secretStoreClient.tokenExpiredCallback = callback
+	err = secretStoreClient.SetAuthToken(ctx, config.Authentication.AuthToken)
 
-	return vaultClient, err
+	return secretStoreClient, err
 }
 
 // GetSecret retrieves the secret at the provided secretName that matches the specified keys.
@@ -90,78 +89,17 @@ func (c *Client) StoreSecret(secretName string, secrets map[string]string) error
 	return c.store(secretName, secrets)
 }
 
-// GenerateConsulToken generates a new Consul token using serviceKey as role name to
-// call secret store's consul/creds API
-// the serviceKey is used in the part of secret store's URL as role name and should be accessible to the API
-func (c *Client) GenerateConsulToken(serviceKey string) (string, error) {
-	trimmedSrvKey := strings.TrimSpace(serviceKey)
-	if len(trimmedSrvKey) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("serviceKey cannot be empty for generating Consul token")
-	}
-
-	if len(c.Config.Authentication.AuthToken) == 0 {
-		return emptyToken, pkg.NewErrSecretStore("secrete store token from config cannot be empty for generating Consul token")
-	}
-
-	credsURL, err := c.Config.BuildURL(fmt.Sprintf(GenerateConsulTokenAPI, trimmedSrvKey))
-	if err != nil {
-		return emptyToken, err
-	}
-
-	req, err := http.NewRequest(http.MethodGet, credsURL, http.NoBody)
-	if err != nil {
-		return emptyToken, err
-	}
-
-	req.Header.Set(AuthTypeHeader, c.Config.Authentication.AuthToken)
-
-	resp, err := c.HttpCaller.Do(req)
-	if err != nil {
-		return emptyToken, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	tokenResp, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return emptyToken, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return emptyToken, ErrHTTPResponse{
-			StatusCode: resp.StatusCode,
-			ErrMsg:     fmt.Sprintf("failed to generate Consul token using [%s]: %s", trimmedSrvKey, string(tokenResp)),
-		}
-	}
-
-	type TokenResp struct {
-		Data struct {
-			Token string `json:"token"`
-		} `json:"data"`
-	}
-	var consulTokenResp TokenResp
-	if err := json.NewDecoder(bytes.NewReader(tokenResp)).Decode(&consulTokenResp); err != nil {
-		return emptyToken, err
-	}
-
-	c.lc.Infof("successfully generated Consul token for service %s", serviceKey)
-
-	return consulTokenResp.Data.Token, nil
-}
-
 func (c *Client) SetAuthToken(ctx context.Context, newToken string) error {
 	// mapMutex protects the internal map cache from race conditions
 	c.mapMutex.Lock()
 
 	// if there is a context already associated with the current token then need to cancel it
-	if cancel, exists := c.vaultTokenCancelFunc[c.Config.Authentication.AuthToken]; exists {
+	if cancel, exists := c.secretStoreTokenToCancelFuncMap[c.Config.Authentication.AuthToken]; exists {
 		cancel()
 	}
 
 	// if there is context already associated with the new token, then we cancel it first
-	if cancel, exists := c.vaultTokenCancelFunc[newToken]; exists {
+	if cancel, exists := c.secretStoreTokenToCancelFuncMap[newToken]; exists {
 		cancel()
 	}
 
@@ -175,11 +113,11 @@ func (c *Client) SetAuthToken(ctx context.Context, newToken string) error {
 	if err = c.refreshToken(cCtx, c.tokenExpiredCallback); err != nil {
 		cancel()
 		c.mapMutex.Lock()
-		delete(c.vaultTokenCancelFunc, c.Config.Authentication.AuthToken)
+		delete(c.secretStoreTokenToCancelFuncMap, c.Config.Authentication.AuthToken)
 		c.mapMutex.Unlock()
 	} else {
 		c.mapMutex.Lock()
-		c.vaultTokenCancelFunc[c.Config.Authentication.AuthToken] = cancel
+		c.secretStoreTokenToCancelFuncMap[c.Config.Authentication.AuthToken] = cancel
 		c.mapMutex.Unlock()
 	}
 
@@ -187,8 +125,8 @@ func (c *Client) SetAuthToken(ctx context.Context, newToken string) error {
 }
 
 func (c *Client) getTokenDetails() (*types.TokenMetadata, error) {
-	// call Vault's token self lookup API
-	url, err := c.Config.BuildURL(lookupSelfVaultAPI)
+	// call OpenBao's token self lookup API
+	url, err := c.Config.BuildURL(lookupSelfTokenAPI)
 	if err != nil {
 		return nil, err
 	}
@@ -316,8 +254,8 @@ func (c *Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 }
 
 func (c *Client) renewToken() error {
-	// call Vault's renew self API
-	url, err := c.Config.BuildURL(renewSelfVaultAPI)
+	// call OpenBao's renew self API
+	url, err := c.Config.BuildURL(renewSelfTokenAPI)
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2024 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -22,7 +23,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/token/fileioperformer"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/token/fileioperformer"
 )
 
 type tokenProvider struct {
@@ -46,7 +47,7 @@ func (p *tokenProvider) Load(path string) (authToken string, err error) {
 	}
 	defer readCloser.Close()
 
-	var parsedContents vaultTokenFile
+	var parsedContents secretStoreTokenFile
 	err = json.Unmarshal(fileContents, &parsedContents)
 	if err != nil {
 		return

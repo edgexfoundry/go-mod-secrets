@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2024 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -16,10 +17,10 @@
 
 package authtokenloader
 
-type vaultTokenFile struct {
+type secretStoreTokenFile struct {
 	// Auth comes from the create token API
 	Auth authObject `json:"auth"`
-	// RootToken comes from the vault-init response
+	// RootToken comes from the secret store-init response
 	RootToken string `json:"root_token"`
 }
 

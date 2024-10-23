@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright 2024 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +14,7 @@
  * the License.
  *******************************************************************************/
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -23,25 +24,25 @@ import (
 	"os"
 	"sync"
 
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg"
-	"github.com/edgexfoundry/go-mod-secrets/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg"
+	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/logger"
 )
 
-// Client defines the behavior for interacting with the Vault REST secret key/value store via HTTP(S).
+// Client defines the behavior for interacting with the OpenBao REST secret key/value store via HTTP(S).
 type Client struct {
 	Config     types.SecretConfig
 	HttpCaller pkg.Caller
 	lc         logger.LoggingClient
 	context    context.Context
-	// vaultTokenCancelFunc is an internal map with token as key and the context.cancel function as value
-	vaultTokenCancelFunc vaultTokenToCancelFuncMap
-	mapMutex             sync.Mutex
-	tokenExpiredCallback pkg.TokenExpiredCallback
+	// secretStoreTokenToCancelFuncMap is an internal map with token as key and the context.cancel function as value
+	secretStoreTokenToCancelFuncMap secretStoreTokenToCancelFuncMap
+	mapMutex                        sync.Mutex
+	tokenExpiredCallback            pkg.TokenExpiredCallback
 }
 
-// NewClient constructs a Vault *Client which communicates with Vault via HTTP(S)
+// NewClient constructs a secret store *Client which communicates with OpenBao via HTTP(S)
 // lc is any logging client that implements the loggingClient interface;
 // today EdgeX's logger.LoggingClient from go-mod-core-contracts satisfies this implementation
 func NewClient(config types.SecretConfig, requester pkg.Caller, forSecrets bool, lc logger.LoggingClient) (*Client, error) {
@@ -58,15 +59,15 @@ func NewClient(config types.SecretConfig, requester pkg.Caller, forSecrets bool,
 		}
 	}
 
-	vaultClient := Client{
-		Config:               config,
-		HttpCaller:           requester,
-		lc:                   lc,
-		mapMutex:             sync.Mutex{},
-		vaultTokenCancelFunc: make(vaultTokenToCancelFuncMap),
+	secretStoreClient := Client{
+		Config:                          config,
+		HttpCaller:                      requester,
+		lc:                              lc,
+		mapMutex:                        sync.Mutex{},
+		secretStoreTokenToCancelFuncMap: make(secretStoreTokenToCancelFuncMap),
 	}
 
-	return &vaultClient, err
+	return &secretStoreClient, err
 }
 
 func createHTTPClient(config types.SecretConfig) (pkg.Caller, error) {
