@@ -23,8 +23,8 @@ import (
 	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
-func (c *Client) CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
+func (c *Client) CreateToken(token string, parameters map[string]any) (map[string]any, error) {
+	response := make(map[string]any)
 
 	_, err := c.doRequest(RequestArgs{
 		AuthToken:            token,
@@ -40,8 +40,8 @@ func (c *Client) CreateToken(token string, parameters map[string]interface{}) (m
 	return response, err
 }
 
-func (c *Client) CreateTokenByRole(token string, roleName string, parameters map[string]interface{}) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
+func (c *Client) CreateTokenByRole(token string, roleName string, parameters map[string]any) (map[string]any, error) {
+	response := make(map[string]any)
 
 	_, err := c.doRequest(RequestArgs{
 		AuthToken: token,

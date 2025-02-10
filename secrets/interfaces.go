@@ -59,8 +59,8 @@ type SecretStoreClient interface {
 	CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error)
 	EnableKVSecretEngine(token string, mountPoint string, kvVersion string) error
 	RegenRootToken(keys []string) (string, error)
-	CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error)
-	CreateTokenByRole(token string, role string, parameters map[string]interface{}) (map[string]interface{}, error)
+	CreateToken(token string, parameters map[string]any) (map[string]any, error)
+	CreateTokenByRole(token string, role string, parameters map[string]any) (map[string]any, error)
 	ListTokenAccessors(token string) ([]string, error)
 	RevokeTokenAccessor(token string, accessor string) error
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
@@ -76,7 +76,7 @@ type SecretStoreClient interface {
 	CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error
 	DeleteUser(token string, mountPoint string, username string) error
 	BindUserToIdentity(token string, identityId string, authHandle string, username string) error
-	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]interface{}, error)
+	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]any, error)
 	CheckIdentityKeyExists(token string, keyName string) (bool, error)
 	CreateNamedIdentityKey(token string, keyName string, algorithm string) error
 	CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, audience string, jwtTTL string) error
