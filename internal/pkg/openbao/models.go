@@ -133,6 +133,11 @@ type ReadEntityByNameResponse struct {
 	Data JsonID `json:"data"`
 }
 
+// ReadEntityByIdResponse is the response to get entity by id
+type ReadEntityByIdResponse struct {
+	Data map[string]any `json:"data"`
+}
+
 // EnableAuthMethodRequest enables a secret store Identity authentication method
 type EnableAuthMethodRequest struct {
 	Type string `json:"type"`

@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Intel Corporation
+// Copyright 2025 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -16,6 +17,7 @@ package openbao
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -59,6 +61,48 @@ func TestCreateToken(t *testing.T) {
 	parameters := make(map[string]interface{})
 	parameters["sample_parameter"] = "sample-value"
 	response, err := client.CreateToken(expectedToken, parameters)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "f00341c1-fad5-f6e6-13fd-235617f858a1", response["request_id"].(string))
+}
+
+func TestCreateTokenByRole(t *testing.T) {
+	mockRole := "role1"
+
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, fmt.Sprintf(CreateTokenByRolePath, mockRole), r.URL.EscapedPath())
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+
+		body := make(map[string]interface{})
+		err := json.NewDecoder(r.Body).Decode(&body)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "sample-value", body["sample_parameter"])
+
+		w.WriteHeader(http.StatusOK)
+
+		response := struct {
+			RequestID string `json:"request_id"`
+		}{
+			RequestID: "f00341c1-fad5-f6e6-13fd-235617f858a1",
+		}
+		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	parameters := make(map[string]interface{})
+	parameters["sample_parameter"] = "sample-value"
+	response, err := client.CreateTokenByRole(expectedToken, mockRole, parameters)
 
 	// Assert
 	require.NoError(t, err)

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2025 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -26,6 +26,7 @@ const (
 	UnsealAPI              = "/v1/sys/unseal"
 	CreatePolicyPath       = "/v1/sys/policies/acl/%s"
 	CreateTokenAPI         = "/v1/auth/token/create"    // nolint: gosec
+	CreateTokenByRolePath  = "/v1/auth/token/create/%s" // nolint: gosec
 	ListAccessorsAPI       = "/v1/auth/token/accessors" // nolint: gosec
 	RevokeAccessorAPI      = "/v1/auth/token/revoke-accessor"
 	LookupAccessorAPI      = "/v1/auth/token/lookup-accessor"
@@ -35,6 +36,7 @@ const (
 	RootTokenRetrievalAPI  = "/v1/sys/generate-root/update"  // nolint: gosec
 	MountsAPI              = "/v1/sys/mounts"
 	namedEntityAPI         = "/v1/identity/entity/name"
+	idEntityAPI            = "/v1/identity/entity/id"
 	entityAliasAPI         = "/v1/identity/entity-alias"
 	oidcKeyAPI             = "/v1/identity/oidc/key"
 	oidcRoleAPI            = "/v1/identity/oidc/role"
