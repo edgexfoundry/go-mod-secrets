@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2025 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -59,7 +59,8 @@ type SecretStoreClient interface {
 	CheckSecretEngineInstalled(token string, mountPoint string, engine string) (bool, error)
 	EnableKVSecretEngine(token string, mountPoint string, kvVersion string) error
 	RegenRootToken(keys []string) (string, error)
-	CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error)
+	CreateToken(token string, parameters map[string]any) (map[string]any, error)
+	CreateTokenByRole(token string, role string, parameters map[string]any) (map[string]any, error)
 	ListTokenAccessors(token string) ([]string, error)
 	RevokeTokenAccessor(token string, accessor string) error
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
@@ -68,13 +69,14 @@ type SecretStoreClient interface {
 	CreateOrUpdateIdentity(token string, name string, metadata map[string]string, policies []string) (string, error)
 	DeleteIdentity(token string, name string) error
 	LookupIdentity(token string, name string) (string, error)
+	GetIdentityByEntityId(token string, entityId string) (map[string]any, error)
 	CheckAuthMethodEnabled(token string, mountPoint string, authType string) (bool, error)
 	EnablePasswordAuth(token string, mountPoint string) error
 	LookupAuthHandle(token string, mountPoint string) (string, error)
 	CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error
 	DeleteUser(token string, mountPoint string, username string) error
 	BindUserToIdentity(token string, identityId string, authHandle string, username string) error
-	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]interface{}, error)
+	InternalServiceLogin(token string, authEngine string, username string, password string) (map[string]any, error)
 	CheckIdentityKeyExists(token string, keyName string) (bool, error)
 	CreateNamedIdentityKey(token string, keyName string, algorithm string) error
 	CreateOrUpdateIdentityRole(token string, roleName string, keyName string, template string, audience string, jwtTTL string) error

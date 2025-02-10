@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Intel Corporation
+// Copyright 2025 IOTech Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -15,18 +16,38 @@
 package openbao
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/edgexfoundry/go-mod-secrets/v4/pkg/types"
 )
 
-func (c *Client) CreateToken(token string, parameters map[string]interface{}) (map[string]interface{}, error) {
-	response := make(map[string]interface{})
+func (c *Client) CreateToken(token string, parameters map[string]any) (map[string]any, error) {
+	response := make(map[string]any)
 
 	_, err := c.doRequest(RequestArgs{
 		AuthToken:            token,
 		Method:               http.MethodPost,
 		Path:                 CreateTokenAPI,
+		JSONObject:           parameters,
+		BodyReader:           nil,
+		OperationDescription: "create token",
+		ExpectedStatusCode:   http.StatusOK,
+		ResponseObject:       &response,
+	})
+
+	return response, err
+}
+
+func (c *Client) CreateTokenByRole(token string, roleName string, parameters map[string]any) (map[string]any, error) {
+	response := make(map[string]any)
+
+	_, err := c.doRequest(RequestArgs{
+		AuthToken: token,
+		Method:    http.MethodPost,
+		//Path:                 CreateTokenAPI,
+		Path:                 fmt.Sprintf(CreateTokenByRolePath, url.PathEscape(roleName)),
 		JSONObject:           parameters,
 		BodyReader:           nil,
 		OperationDescription: "create token",

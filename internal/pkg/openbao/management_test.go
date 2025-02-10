@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2025 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -498,6 +498,35 @@ func TestLookupIdentity(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.Equal(t, id, "someguid")
+}
+
+func TestGetIdentityByEntityId(t *testing.T) {
+	mockId := "074fa04b-0f48-6ce3-53f3-d5cfe8147d7d"
+
+	// Arrange
+	mockLogger := logger.MockLogger{}
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, expectedToken, r.Header.Get(AuthTypeHeader))
+		require.Equal(t, r.Method, http.MethodGet)
+		require.Equal(t, path.Join(idEntityAPI, mockId), r.URL.EscapedPath())
+
+		w.WriteHeader(http.StatusOK)
+		response := ReadEntityByIdResponse{}
+		response.Data = map[string]any{"id": mockId}
+		err := json.NewEncoder(w).Encode(response)
+		require.NoError(t, err)
+	}))
+	defer ts.Close()
+
+	client := createClient(t, ts.URL, mockLogger)
+
+	// Act
+	result, err := client.GetIdentityByEntityId(expectedToken, mockId)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, result["id"], mockId)
 }
 
 func TestEnablePasswordAuth(t *testing.T) {

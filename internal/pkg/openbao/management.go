@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2025 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -248,6 +248,28 @@ func (c *Client) LookupIdentity(secretStoreToken string, name string) (string, e
 	}
 
 	return response.Data.ID, nil
+}
+
+func (c *Client) GetIdentityByEntityId(secretStoreToken string, entityId string) (map[string]any, error) {
+	urlPath := path.Join(idEntityAPI, entityId)
+	response := ReadEntityByIdResponse{}
+
+	_, err := c.doRequest(RequestArgs{
+		AuthToken:            secretStoreToken,
+		Method:               http.MethodGet,
+		Path:                 urlPath,
+		JSONObject:           nil,
+		BodyReader:           nil,
+		OperationDescription: "Read Entity",
+		ExpectedStatusCode:   http.StatusOK,
+		ResponseObject:       &response,
+	})
+
+	if err != nil {
+		return map[string]any{}, err
+	}
+
+	return response.Data, nil
 }
 
 func (c *Client) CheckAuthMethodEnabled(token string, mountPoint string, authType string) (bool, error) {
