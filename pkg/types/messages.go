@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
+ * Copyright (c) 2025 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -42,4 +43,17 @@ type TokenMetadata struct {
 type BootStrapACLTokenInfo struct {
 	SecretID string   `json:"SecretID"`
 	Policies []Policy `json:"Policies"`
+}
+
+// Alias has introspection data about entity alias
+type Alias struct {
+	Name string `json:"name"`
+}
+
+// EntityMetadata has introspection data about entity
+type EntityMetadata struct {
+	Aliases  []Alias  `json:"aliases"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Policies []string `json:"policies"`
 }

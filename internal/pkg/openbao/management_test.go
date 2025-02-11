@@ -502,7 +502,7 @@ func TestLookupIdentity(t *testing.T) {
 
 func TestGetIdentityByEntityId(t *testing.T) {
 	mockId := "074fa04b-0f48-6ce3-53f3-d5cfe8147d7d"
-
+	mockAlias := types.Alias{Name: "mockAlias1"}
 	// Arrange
 	mockLogger := logger.MockLogger{}
 
@@ -512,8 +512,12 @@ func TestGetIdentityByEntityId(t *testing.T) {
 		require.Equal(t, path.Join(idEntityAPI, mockId), r.URL.EscapedPath())
 
 		w.WriteHeader(http.StatusOK)
-		response := ReadEntityByIdResponse{}
-		response.Data = map[string]any{"id": mockId}
+		response := ReadEntityByIdResponse{
+			Data: types.EntityMetadata{
+				Aliases: []types.Alias{mockAlias},
+				ID:      mockId,
+			},
+		}
 		err := json.NewEncoder(w).Encode(response)
 		require.NoError(t, err)
 	}))
@@ -526,7 +530,8 @@ func TestGetIdentityByEntityId(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	require.Equal(t, result["id"], mockId)
+	require.Equal(t, result.ID, mockId)
+	require.Equal(t, result.Aliases[0], mockAlias)
 }
 
 func TestEnablePasswordAuth(t *testing.T) {

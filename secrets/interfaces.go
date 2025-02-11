@@ -66,10 +66,11 @@ type SecretStoreClient interface {
 	LookupTokenAccessor(token string, accessor string) (types.TokenMetadata, error)
 	LookupToken(token string) (types.TokenMetadata, error)
 	RevokeToken(token string) error
+	CreateOrUpdateTokenRole(token string, roleName string, parameters map[string]any) error
 	CreateOrUpdateIdentity(token string, name string, metadata map[string]string, policies []string) (string, error)
 	DeleteIdentity(token string, name string) error
 	LookupIdentity(token string, name string) (string, error)
-	GetIdentityByEntityId(token string, entityId string) (map[string]any, error)
+	GetIdentityByEntityId(token string, entityId string) (types.EntityMetadata, error)
 	CheckAuthMethodEnabled(token string, mountPoint string, authType string) (bool, error)
 	EnablePasswordAuth(token string, mountPoint string) error
 	LookupAuthHandle(token string, mountPoint string) (string, error)

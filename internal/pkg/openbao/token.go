@@ -44,9 +44,8 @@ func (c *Client) CreateTokenByRole(token string, roleName string, parameters map
 	response := make(map[string]any)
 
 	_, err := c.doRequest(RequestArgs{
-		AuthToken: token,
-		Method:    http.MethodPost,
-		//Path:                 CreateTokenAPI,
+		AuthToken:            token,
+		Method:               http.MethodPost,
 		Path:                 fmt.Sprintf(CreateTokenByRolePath, url.PathEscape(roleName)),
 		JSONObject:           parameters,
 		BodyReader:           nil,
@@ -139,6 +138,21 @@ func (c *Client) RevokeToken(token string) error {
 		JSONObject:           nil,
 		BodyReader:           nil,
 		OperationDescription: "revoke self token",
+		ExpectedStatusCode:   http.StatusNoContent,
+		ResponseObject:       nil,
+	})
+
+	return err
+}
+
+func (c *Client) CreateOrUpdateTokenRole(token string, roleName string, parameters map[string]any) error {
+	_, err := c.doRequest(RequestArgs{
+		AuthToken:            token,
+		Method:               http.MethodPost,
+		Path:                 fmt.Sprintf(TokenRolesByRoleAPI, url.PathEscape(roleName)),
+		JSONObject:           parameters,
+		BodyReader:           nil,
+		OperationDescription: "create token role",
 		ExpectedStatusCode:   http.StatusNoContent,
 		ResponseObject:       nil,
 	})

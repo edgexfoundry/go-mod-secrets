@@ -179,6 +179,24 @@ func (_m *SecretStoreClient) CreateOrUpdateIdentityRole(token string, roleName s
 	return r0
 }
 
+// CreateOrUpdateTokenRole provides a mock function with given fields: token, roleName, parameters
+func (_m *SecretStoreClient) CreateOrUpdateTokenRole(token string, roleName string, parameters map[string]interface{}) error {
+	ret := _m.Called(token, roleName, parameters)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateOrUpdateTokenRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, map[string]interface{}) error); ok {
+		r0 = rf(token, roleName, parameters)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateOrUpdateUser provides a mock function with given fields: token, mountPoint, username, password, tokenTTL, tokenPolicies
 func (_m *SecretStoreClient) CreateOrUpdateUser(token string, mountPoint string, username string, password string, tokenTTL string, tokenPolicies []string) error {
 	ret := _m.Called(token, mountPoint, username, password, tokenTTL, tokenPolicies)
@@ -330,24 +348,22 @@ func (_m *SecretStoreClient) EnablePasswordAuth(token string, mountPoint string)
 }
 
 // GetIdentityByEntityId provides a mock function with given fields: token, entityId
-func (_m *SecretStoreClient) GetIdentityByEntityId(token string, entityId string) (map[string]interface{}, error) {
+func (_m *SecretStoreClient) GetIdentityByEntityId(token string, entityId string) (types.EntityMetadata, error) {
 	ret := _m.Called(token, entityId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetIdentityByEntityId")
 	}
 
-	var r0 map[string]interface{}
+	var r0 types.EntityMetadata
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (map[string]interface{}, error)); ok {
+	if rf, ok := ret.Get(0).(func(string, string) (types.EntityMetadata, error)); ok {
 		return rf(token, entityId)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) map[string]interface{}); ok {
+	if rf, ok := ret.Get(0).(func(string, string) types.EntityMetadata); ok {
 		r0 = rf(token, entityId)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]interface{})
-		}
+		r0 = ret.Get(0).(types.EntityMetadata)
 	}
 
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {

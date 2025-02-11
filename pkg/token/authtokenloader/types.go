@@ -1,6 +1,6 @@
 //
 // Copyright (c) 2019 Intel Corporation
-// Copyright (c) 2024 IOTech Ltd
+// Copyright (c) 2024-2025 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -26,4 +26,5 @@ type secretStoreTokenFile struct {
 
 type authObject struct {
 	ClientToken string `json:"client_token"`
+	EntityId    string `json:"entity_id"`
 }

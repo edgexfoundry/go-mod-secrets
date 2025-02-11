@@ -1,6 +1,6 @@
 //
 // Copyright (c) 2019 Intel Corporation
-// Copyright (c) 2024 IOTech Ltd
+// Copyright (c) 2024-2025 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -62,6 +62,32 @@ func (p *tokenProvider) Load(path string) (authToken string, err error) {
 		authToken = parsedContents.RootToken
 	} else {
 		err = fmt.Errorf("Unable to find authentication token in %s", path)
+	}
+	return
+}
+
+func (p *tokenProvider) ReadEntityId(path string) (entityId string, err error) {
+	reader, err := p.fileOpener.OpenFileReader(path, os.O_RDONLY, 0400)
+	if err != nil {
+		return
+	}
+	readCloser := fileioperformer.MakeReadCloser(reader)
+	fileContents, err := io.ReadAll(readCloser)
+	if err != nil {
+		return
+	}
+	defer readCloser.Close()
+
+	var parsedContents secretStoreTokenFile
+	err = json.Unmarshal(fileContents, &parsedContents)
+	if err != nil {
+		return
+	}
+
+	if parsedContents.Auth.EntityId != "" {
+		entityId = parsedContents.Auth.EntityId
+	} else {
+		err = fmt.Errorf("Unable to find entity id in %s", path)
 	}
 	return
 }
