@@ -32,6 +32,7 @@ const (
 	LookupAccessorAPI      = "/v1/auth/token/lookup-accessor"
 	LookupSelfAPI          = "/v1/auth/token/lookup-self"
 	RevokeSelfAPI          = "/v1/auth/token/revoke-self"
+	TokenRolesByRoleAPI    = "/v1/auth/token/roles/%s"       // nolint: gosec
 	RootTokenControlAPI    = "/v1/sys/generate-root/attempt" // nolint: gosec
 	RootTokenRetrievalAPI  = "/v1/sys/generate-root/update"  // nolint: gosec
 	MountsAPI              = "/v1/sys/mounts"

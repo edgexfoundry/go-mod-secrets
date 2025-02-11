@@ -250,7 +250,7 @@ func (c *Client) LookupIdentity(secretStoreToken string, name string) (string, e
 	return response.Data.ID, nil
 }
 
-func (c *Client) GetIdentityByEntityId(secretStoreToken string, entityId string) (map[string]any, error) {
+func (c *Client) GetIdentityByEntityId(secretStoreToken string, entityId string) (types.EntityMetadata, error) {
 	urlPath := path.Join(idEntityAPI, entityId)
 	response := ReadEntityByIdResponse{}
 
@@ -266,7 +266,7 @@ func (c *Client) GetIdentityByEntityId(secretStoreToken string, entityId string)
 	})
 
 	if err != nil {
-		return map[string]any{}, err
+		return types.EntityMetadata{}, err
 	}
 
 	return response.Data, nil
