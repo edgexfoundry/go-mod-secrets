@@ -7,6 +7,35 @@
 
 - [go-mod-core-contracts](https://github.com/edgexfoundry/go-mod-core-contracts/blob/main/CHANGELOG.md)
 
+## [v4.0.0] - 2025-03-12
+
+### ✨Features
+
+- Add `CreateOrUpdateTokenRole` method for SecretStoreClient ([376921a…](https://github.com/edgexfoundry/go-mod-secrets/commit/376921a5bff43fe35ce0fa21d54be415799ba008))
+- Add new methods for SecretStoreClient ([#307](https://github.com/edgexfoundry/go-mod-secrets/issues/307)) ([f4e54c9…](https://github.com/edgexfoundry/go-mod-secrets/commit/f4e54c98d67687ab4295b4342465ed9c03a95afb))
+```text
+
+BREAKING CHANGE: Add new methods for SecretStoreClient
+
+```
+### ♻ Code Refactoring
+
+- Update module to v4 and replace vault with openbao ([c604dee…](https://github.com/edgexfoundry/go-mod-secrets/commit/c604deef9d980f328dd19e8d82b75e5278f54000))
+```text
+
+BREAKING CHANGE: 
+- Update go module to v4 
+- Replace Vault with OpenBao
+```
+
+### 🐛 Bug Fixes
+
+- Correct the status code when calling secret store HealthCheck API ([#237](https://github.com/edgexfoundry/go-mod-secrets/issues/237)) ([3e242a2…](https://github.com/edgexfoundry/go-mod-secrets/commit/3e242a2355c48e9c7f5a2551a8a73a66823128f4))
+
+### 👷 Build
+
+- Upgrade to go-1.23, Linter1.61.0 ([1fa2d65…](https://github.com/edgexfoundry/go-mod-secrets/commit/1fa2d65bcea9fc3d2774ec3c6b4fddc928690939))
+
 ## [v3.1.0] - 2023-11-15
 
 ### 🐛 Bug Fixes
