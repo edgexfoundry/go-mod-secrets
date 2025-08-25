@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.12
 	github.com/spiffe/go-spiffe/v2 v2.5.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
