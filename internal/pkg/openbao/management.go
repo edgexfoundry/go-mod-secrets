@@ -341,7 +341,7 @@ func (c *Client) LookupAuthHandle(token string, mountPoint string) (string, erro
 
 	info, ok := response.Data[mountPoint+"/"]
 	if !ok {
-		return "", fmt.Errorf("Mount point %s not found", mountPoint)
+		return "", fmt.Errorf("mount point %s not found", mountPoint)
 	}
 	return info.Accessor, nil
 }

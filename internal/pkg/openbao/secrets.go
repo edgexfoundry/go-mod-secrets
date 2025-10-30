@@ -519,7 +519,7 @@ func (c *Client) IsJWTValid(jwt string) (bool, error) {
 
 	payload, err := json.Marshal(token)
 	if err != nil {
-		return false, fmt.Errorf("Unable to marshal token introspect body")
+		return false, fmt.Errorf("unable to marshal token introspect body")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))
