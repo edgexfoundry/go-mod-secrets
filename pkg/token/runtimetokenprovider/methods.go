@@ -141,7 +141,7 @@ func (p *runtimetokenprovider) defaultGetTLSConfig(ctx context.Context, lc logge
 	// Create a `workloadapi.X509Source`, it will connect to Workload API using provided socket path
 	source, err := workloadapi.NewX509Source(ctx, workloadapi.WithClientOptions(workloadapi.WithAddr(udsSocket)))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create X509Source: %v", err)
+		return nil, fmt.Errorf("unable to create X509Source: %v", err)
 	}
 
 	// need to cache the source so that we can close it later after https TLS calls

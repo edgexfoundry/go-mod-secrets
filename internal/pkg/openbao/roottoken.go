@@ -150,7 +150,7 @@ func (c *Client) rootTokenDecodeToken(encodedToken string, otp string) (string, 
 	otpBytes := []byte(otp)
 
 	if len(encodedBytes) != len(otpBytes) {
-		return "", fmt.Errorf("Invalid input to rootTokenDecodeToken - array length mismatch: %d != %d", len(encodedBytes), len(otpBytes))
+		return "", fmt.Errorf("invalid input to rootTokenDecodeToken - array length mismatch: %d != %d", len(encodedBytes), len(otpBytes))
 	}
 
 	decodedBytes := make([]byte, len(encodedBytes))

@@ -66,7 +66,7 @@ func TestReadEmptyJSON(t *testing.T) {
 	p := NewAuthTokenLoader(mockFileIoPerformer)
 
 	_, err := p.Load("/dev/null")
-	assert.EqualError(t, err, "Unable to find authentication token in /dev/null")
+	assert.EqualError(t, err, "unable to find authentication token in /dev/null")
 }
 
 func TestFailOpen(t *testing.T) {

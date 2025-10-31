@@ -61,7 +61,7 @@ func (p *tokenProvider) Load(path string) (authToken string, err error) {
 	} else if parsedContents.RootToken != "" {
 		authToken = parsedContents.RootToken
 	} else {
-		err = fmt.Errorf("Unable to find authentication token in %s", path)
+		err = fmt.Errorf("unable to find authentication token in %s", path)
 	}
 	return
 }
@@ -87,7 +87,7 @@ func (p *tokenProvider) ReadEntityId(path string) (entityId string, err error) {
 	if parsedContents.Auth.EntityId != "" {
 		entityId = parsedContents.Auth.EntityId
 	} else {
-		err = fmt.Errorf("Unable to find entity id in %s", path)
+		err = fmt.Errorf("unable to find entity id in %s", path)
 	}
 	return
 }
