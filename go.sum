@@ -3,8 +3,8 @@ github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.21 h1:gh+CoXbkXa2E3favumU513BYnB8U3ubW2zBUJpWNSwU=
-github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.21/go.mod h1:jDm9E4z9svXErYAxr0oigmVV50wmIoHaveOlP7FBkHQ=
+github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.22 h1:rV4aHYBoLvlyy9XHBDSC+cXbhiyRotF0RqZVI46Rd7I=
+github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.22/go.mod h1:jDm9E4z9svXErYAxr0oigmVV50wmIoHaveOlP7FBkHQ=
 github.com/gabriel-vasile/mimetype v1.4.10 h1:zyueNbySn/z8mJZHLt6IPw0KoZsiQNszIpU+bX4+ZK0=
 github.com/gabriel-vasile/mimetype v1.4.10/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/go-jose/go-jose/v4 v4.1.2 h1:TK/7NqRQZfgAh+Td8AlsrvtPoUyiHh0LqVvokh+1vHI=
