@@ -7,9 +7,15 @@
 
 - [go-mod-core-contracts](https://github.com/edgexfoundry/go-mod-core-contracts/blob/main/CHANGELOG.md)
 
+## [v4.0.2] - 2026-05-31
+
+### 👷 Build 
+- Update goVersion to 1.25 and golangci-lint to 2.5.0 ([#eaa3d6c](https://github.com/edgexfoundry/go-mod-secrets/commits/eaa3d6c))
+
+
 ## [v4.0.0] - 2025-03-12
 
-### ✨Features
+### ✨ Features
 
 - Add `CreateOrUpdateTokenRole` method for SecretStoreClient ([376921a…](https://github.com/edgexfoundry/go-mod-secrets/commit/376921a5bff43fe35ce0fa21d54be415799ba008))
 - Add new methods for SecretStoreClient ([#307](https://github.com/edgexfoundry/go-mod-secrets/issues/307)) ([f4e54c9…](https://github.com/edgexfoundry/go-mod-secrets/commit/f4e54c98d67687ab4295b4342465ed9c03a95afb))
