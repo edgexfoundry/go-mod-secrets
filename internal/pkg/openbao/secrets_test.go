@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2026 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,11 +25,13 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1034,4 +1036,49 @@ func TestHttpSecretStoreManager_IsJWTValid(t *testing.T) {
 	actual, err := client.IsJWTValid("some-jwt-token")
 	require.NoError(t, err)
 	require.Equal(t, true, actual)
+}
+
+// TestTokenRenewalRetriesOnTransientError verifies that a non-403 (transient) renewal failure keeps
+// the renewal goroutine alive so it retries on the next tick, rather than giving up for the rest of
+// the process's life.
+func TestTokenRenewalRetriesOnTransientError(t *testing.T) {
+	t.Parallel()
+
+	var renewAttempts int32
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost && req.URL.Path == "/v1/auth/token/renew-self" {
+			atomic.AddInt32(&renewAttempts, 1)
+			// simulate a transient failure (store unreachable / mid-restart), i.e. not a 403
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		rw.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	host, port, _ := net.SplitHostPort(serverURL.Host)
+	portNum, _ := strconv.Atoi(port)
+
+	client, err := NewClient(
+		types.SecretConfig{
+			Host:           host,
+			Port:           portNum,
+			Protocol:       "http",
+			Authentication: types.AuthenticationInfo{AuthToken: "transientToken"},
+		},
+		nil, true, logger.NewMockClient())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client.context = ctx
+
+	go client.doTokenRefreshPeriodically(50*time.Millisecond, nil)
+
+	require.Eventually(t, func() bool {
+		return atomic.LoadInt32(&renewAttempts) >= 2
+	}, 2*time.Second, 20*time.Millisecond,
+		"transient renewal failure should keep the goroutine alive and retry on the next tick")
 }
