@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright 2019 Dell Inc.
  * Copyright 2021 Intel Corp.
- * Copyright 2024 IOTech Ltd
+ * Copyright 2024-2026 IOTech Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -243,10 +243,13 @@ func (c *Client) doTokenRefreshPeriodically(renewInterval time.Duration,
 					c.Config.Authentication.AuthToken = replacementToken
 					c.lc.Info("auth token is replaced")
 				} else {
-					// other type of errors, cannot continue, quitting the renewal routine
-					c.lc.Errorf("dismiss the renewal process as the current token cannot be renewed: %v", err)
-					ticker.Stop()
-					return
+					// Transient failure (e.g. the secret store is unreachable or mid-restart), not a
+					// confirmed-invalid token - keep the thread alive and retry next tick rather than
+					// giving up renewal for the rest of the process's life over what may resolve on
+					// its own. If the token genuinely expires during the outage, the next attempt
+					// after the store recovers will get a real 403, handled above.
+					c.lc.Warnf("secret store token renewal failed, will retry next tick: %v", err)
+					continue
 				}
 			}
 		}
