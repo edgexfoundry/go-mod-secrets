@@ -55,7 +55,7 @@ func TestRegenRootToken(t *testing.T) {
 			assert.Equal(t, "PUT", theMethod)
 			assert.Equal(t, RootTokenRetrievalAPI, thePath)
 			w.WriteHeader(http.StatusOK)
-			err := json.NewEncoder(w).Encode(RootTokenRetrievalResponse{
+			err := json.NewEncoder(w).Encode(RootTokenRetrievalResponse{ // nolint: gosec // fake token fixture
 				Complete:     true,
 				EncodedToken: "GVQfeQ5eIQ5+IlczQy0JBw80ITI6FHFme3w",
 			})
